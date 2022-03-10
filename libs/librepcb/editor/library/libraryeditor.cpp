@@ -191,6 +191,8 @@ LibraryEditor::LibraryEditor(Workspace& ws, const FilePath& libFp,
                                mUi->actionToolSelect);
   mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_LINE,
                                mUi->actionDrawLine);
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_ARC,
+                               mUi->actionDrawArc);
   mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_RECT,
                                mUi->actionDrawRect);
   mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_POLYGON,

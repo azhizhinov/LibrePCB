@@ -242,6 +242,8 @@ add_library(
   library/pkg/fsm/packageeditorstate_addpads.h
   library/pkg/fsm/packageeditorstate_addvalues.cpp
   library/pkg/fsm/packageeditorstate_addvalues.h
+  library/pkg/fsm/packageeditorstate_drawarc.cpp
+  library/pkg/fsm/packageeditorstate_drawarc.h
   library/pkg/fsm/packageeditorstate_drawcircle.cpp
   library/pkg/fsm/packageeditorstate_drawcircle.h
   library/pkg/fsm/packageeditorstate_drawline.cpp

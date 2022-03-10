@@ -190,6 +190,7 @@ void PackageEditorWidget::setToolsActionGroup(
     mToolsActionGroup->setActionEnabled(Tool::ADD_NAMES, enabled);
     mToolsActionGroup->setActionEnabled(Tool::ADD_VALUES, enabled);
     mToolsActionGroup->setActionEnabled(Tool::DRAW_LINE, enabled);
+    mToolsActionGroup->setActionEnabled(Tool::DRAW_ARC, enabled);
     mToolsActionGroup->setActionEnabled(Tool::DRAW_RECT, enabled);
     mToolsActionGroup->setActionEnabled(Tool::DRAW_POLYGON, enabled);
     mToolsActionGroup->setActionEnabled(Tool::DRAW_CIRCLE, enabled);
@@ -410,6 +411,8 @@ bool PackageEditorWidget::toolChangeRequested(Tool newTool) noexcept {
       return mFsm->processStartAddingValues();
     case Tool::DRAW_LINE:
       return mFsm->processStartDrawLines();
+    case Tool::DRAW_ARC:
+      return mFsm->processStartDrawArcs();
     case Tool::DRAW_RECT:
       return mFsm->processStartDrawRects();
     case Tool::DRAW_POLYGON:

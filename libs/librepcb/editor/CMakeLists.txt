@@ -282,6 +282,8 @@ add_library(
   library/sym/fsm/symboleditorstate_addpins.h
   library/sym/fsm/symboleditorstate_addvalues.cpp
   library/sym/fsm/symboleditorstate_addvalues.h
+  library/sym/fsm/symboleditorstate_drawarc.cpp
+  library/sym/fsm/symboleditorstate_drawarc.h
   library/sym/fsm/symboleditorstate_drawcircle.cpp
   library/sym/fsm/symboleditorstate_drawcircle.h
   library/sym/fsm/symboleditorstate_drawline.cpp

@@ -17,16 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBREPCB_EDITOR_SEARCHTOOLBAR_H
-#define LIBREPCB_EDITOR_SEARCHTOOLBAR_H
+#ifndef LIBREPCB_EDITOR_EDITORCOMMANDCATEGORY_H
+#define LIBREPCB_EDITOR_EDITORCOMMANDCATEGORY_H
 
 /*******************************************************************************
  *  Includes
  ******************************************************************************/
 #include <QtCore>
 #include <QtWidgets>
-
-#include <functional>
 
 /*******************************************************************************
  *  Namespace / Forward Declarations
@@ -35,47 +33,34 @@ namespace librepcb {
 namespace editor {
 
 /*******************************************************************************
- *  Class SearchToolBar
+ *  Class EditorCommandCategory
  ******************************************************************************/
 
 /**
- * @brief The SearchToolBar class
+ * @brief Category for ::librepcb::editor::EditorCommand
  */
-class SearchToolBar final : public QToolBar {
+class EditorCommandCategory final : public QObject {
   Q_OBJECT
 
 public:
-  typedef std::function<QStringList()> CompleterListFunction;
-
   // Constructors / Destructor
-  SearchToolBar(const SearchToolBar& other) = delete;
-  explicit SearchToolBar(QWidget* parent = nullptr) noexcept;
-  ~SearchToolBar() noexcept;
+  EditorCommandCategory() = delete;
+  EditorCommandCategory(const EditorCommandCategory& other) = delete;
+  EditorCommandCategory(const QString& objectName, const QString& text,
+                        QObject* parent = nullptr) noexcept
+    : QObject(parent), mText(text) {
+    setObjectName(objectName);
+  }
+  ~EditorCommandCategory() noexcept {}
 
-  // Setters
-  void setPlaceholderText(const QString& text) noexcept {
-    mLineEdit->setPlaceholderText(text);
-  }
-  void setCompleterListFunction(CompleterListFunction fun) noexcept {
-    mCompleterListFunction = fun;
-  }
+  // Getters
+  const QString& getText() const noexcept { return mText; }
 
   // Operator Overloadings
-  SearchToolBar& operator=(const SearchToolBar& rhs) = delete;
+  EditorCommandCategory& operator=(const EditorCommandCategory& rhs) = delete;
 
-signals:
-  void textEdited(const QString& text);
-  void goToTriggered(const QString& name, unsigned int index = 0);
-
-private:
-  void updateCompleter() noexcept;
-  void textEditedHandler(const QString& text) noexcept;
-  void enterPressed() noexcept;
-
-private:
-  CompleterListFunction mCompleterListFunction;
-  QScopedPointer<QLineEdit> mLineEdit;
-  unsigned int mIndex;  ///< Number of searches with the current search term
+private:  // Data
+  QString mText;
 };
 
 /*******************************************************************************

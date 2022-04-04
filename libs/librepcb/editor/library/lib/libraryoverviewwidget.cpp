@@ -23,7 +23,9 @@
 #include "libraryoverviewwidget.h"
 
 #include "../../dialogs/filedialog.h"
+#include "../../editorcommandset.h"
 #include "../../library/cmd/cmdlibraryedit.h"
+#include "../../utils/menubuilder.h"
 #include "librarylisteditorwidget.h"
 #include "ui_libraryoverviewwidget.h"
 
@@ -148,6 +150,14 @@ LibraryOverviewWidget::LibraryOverviewWidget(const Context& context,
   connect(&mContext.workspace.getLibraryDb(),
           &WorkspaceLibraryDb::scanSucceeded, this,
           &LibraryOverviewWidget::updateElementLists);
+
+  // Create contextmenu actions for each list widget.
+  createListWidgetActions(mUi->lstCmpCat);
+  createListWidgetActions(mUi->lstPkgCat);
+  createListWidgetActions(mUi->lstSym);
+  createListWidgetActions(mUi->lstCmp);
+  createListWidgetActions(mUi->lstPkg);
+  createListWidgetActions(mUi->lstDev);
 }
 
 LibraryOverviewWidget::~LibraryOverviewWidget() noexcept {
@@ -206,6 +216,16 @@ bool LibraryOverviewWidget::remove() noexcept {
 /*******************************************************************************
  *  Private Methods
  ******************************************************************************/
+
+void LibraryOverviewWidget::createListWidgetActions(
+    QListWidget* parent) noexcept {
+  const EditorCommandSet& cmd = EditorCommandSet::instance();
+
+  QAction* aNew = cmd.newLibraryElement.createAction(
+      parent, this, []() { QMessageBox::warning(0, "foo", "bar"); });
+  aNew->setShortcutContext(Qt::WidgetShortcut);
+  parent->addAction(aNew);
+}
 
 void LibraryOverviewWidget::updateMetadata() noexcept {
   setWindowTitle(*mLibrary->getNames().getDefaultValue());
@@ -402,23 +422,33 @@ void LibraryOverviewWidget::openContextMenuAtPos(const QPoint& pos) noexcept {
   QHash<QAction*, FilePath> aMoveToLibChildren;
 
   // Build the context menu
-  QMenu menu;
-  QAction* aEdit = menu.addAction(QIcon(":/img/actions/edit.png"),
-                                  mContext.readOnly ? tr("Open") : tr("Edit"));
+  /*QMenu menu_;
+  MenuBuilder mb(&menu_);
+  const EditorCommandSet& cmd = EditorCommandSet::instance();
+  QAction* aEdit = mContext.readOnly
+      ? cmd.openLibraryElement.createAction(&menu_)
+      : cmd.editLibraryElement.createAction(&menu_);
   aEdit->setVisible(!selectedItemPaths.isEmpty());
-  QAction* aDuplicate =
-      menu.addAction(QIcon(":/img/actions/clone.png"), tr("Duplicate"));
+  mb.addAction(aEdit);
+  QAction* aDuplicate = cmd.duplicateLibraryElement.createAction(&menu_);
   aDuplicate->setVisible(selectedItemPaths.count() == 1);
   aDuplicate->setEnabled(!mContext.readOnly);
-  QAction* aRemove =
-      menu.addAction(QIcon(":/img/actions/delete.png"), tr("Remove"));
+  mb.addAction(aDuplicate);
+  QAction* aRemove = cmd.remove.createAction(&menu_);
   aRemove->setVisible(!selectedItemPaths.isEmpty());
   aRemove->setEnabled(!mContext.readOnly);
+  mb.addAction(aRemove);
   if (!selectedItemPaths.isEmpty()) {
-    QMenu* menuCopyToLib = menu.addMenu(QIcon(":/img/actions/copy.png"),
-                                        tr("Copy to other library"));
-    QMenu* menuMoveToLib = menu.addMenu(QIcon(":/img/actions/move_to.png"),
-                                        tr("Move to other library"));
+    {
+      MenuBuilder
+  smb(mb.addSubMenu(&MenuBuilder::createCopyToOtherLibraryMenu));
+
+    }
+    {
+      MenuBuilder
+  smb(mb.addSubMenu(&MenuBuilder::createMoveToOtherLibraryMenu));
+
+    }
     foreach (const LibraryMenuItem& item, getLocalLibraries()) {
       if (item.filepath != mLibrary->getDirectory().getAbsPath()) {
         QAction* actionCopy = menuCopyToLib->addAction(item.pixmap, item.name);
@@ -432,19 +462,20 @@ void LibraryOverviewWidget::openContextMenuAtPos(const QPoint& pos) noexcept {
     menuMoveToLib->setEnabled((!aMoveToLibChildren.isEmpty()) &&
                               (!mContext.readOnly));
   }
-  QAction* aNew = menu.addAction(QIcon(":/img/actions/new.png"), tr("New"));
+  QAction* aNew = cmd.newLibraryElement.createAction(&menu_);
   aNew->setVisible(selectedItemPaths.count() <= 1);
   aNew->setEnabled(!mContext.readOnly);
+  mb.addAction(aNew);
 
   // Set default action
   if (selectedItemPaths.isEmpty() && aNew->isVisible() && aNew->isEnabled()) {
-    menu.setDefaultAction(aNew);
+    menu_.setDefaultAction(aNew);
   } else {
-    menu.setDefaultAction(aEdit);
+    menu_.setDefaultAction(aEdit);
   }
 
   // Show context menu, handle action
-  QAction* action = menu.exec(QCursor::pos());
+  QAction* action = menu_.exec(QCursor::pos());
   if (action == aEdit) {
     Q_ASSERT(selectedItemPaths.count() > 0);
     foreach (const FilePath& fp, selectedItemPaths) { editItem(list, fp); }
@@ -464,7 +495,7 @@ void LibraryOverviewWidget::openContextMenuAtPos(const QPoint& pos) noexcept {
     Q_ASSERT(selectedItemPaths.count() > 0);
     copyElementsToOtherLibrary(selectedItemPaths, aMoveToLibChildren[action],
                                action->text(), true);
-  }
+  }*/
 }
 
 void LibraryOverviewWidget::newItem(QListWidget* list) noexcept {

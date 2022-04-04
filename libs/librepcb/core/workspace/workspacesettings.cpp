@@ -54,7 +54,8 @@ WorkspaceSettings::WorkspaceSettings(const FilePath& fp,
                    QList<QUrl>{QUrl("https://api.librepcb.org")}, this),
     useCustomPdfReader("use_custom_pdf_reader", false, this),
     pdfReaderCommand("pdf_custom_reader_command", "", this),
-    pdfOpenBehavior("pdf_open_behavior", PdfOpenBehavior::ALWAYS, this) {
+    pdfOpenBehavior("pdf_open_behavior", PdfOpenBehavior::ALWAYS, this),
+    keyboardShortcuts(this) {
   // load settings if the settings file exists
   if (mFilePath.isExistingFile()) {
     qDebug("Load workspace settings...");

@@ -17,72 +17,77 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBREPCB_EDITOR_SEARCHTOOLBAR_H
-#define LIBREPCB_EDITOR_SEARCHTOOLBAR_H
+#ifndef LIBREPCB_CORE_WORKSPACESETTINGSITEM_KEYBOARDSHORTCUTS_H
+#define LIBREPCB_CORE_WORKSPACESETTINGSITEM_KEYBOARDSHORTCUTS_H
 
 /*******************************************************************************
  *  Includes
  ******************************************************************************/
-#include <QtCore>
-#include <QtWidgets>
+#include "workspacesettingsitem.h"
 
-#include <functional>
+#include <QtCore>
 
 /*******************************************************************************
  *  Namespace / Forward Declarations
  ******************************************************************************/
 namespace librepcb {
-namespace editor {
 
 /*******************************************************************************
- *  Class SearchToolBar
+ *  Class WorkspaceSettingsItem_KeyboardShortcuts
  ******************************************************************************/
 
 /**
- * @brief The SearchToolBar class
+ * @brief Implementation of ::librepcb::WorkspaceSettingsItem to store
+ *        keyboard shortcuts settings
  */
-class SearchToolBar final : public QToolBar {
-  Q_OBJECT
-
+class WorkspaceSettingsItem_KeyboardShortcuts final
+  : public WorkspaceSettingsItem {
 public:
-  typedef std::function<QStringList()> CompleterListFunction;
-
   // Constructors / Destructor
-  SearchToolBar(const SearchToolBar& other) = delete;
-  explicit SearchToolBar(QWidget* parent = nullptr) noexcept;
-  ~SearchToolBar() noexcept;
+  WorkspaceSettingsItem_KeyboardShortcuts() = delete;
+  WorkspaceSettingsItem_KeyboardShortcuts(
+      const WorkspaceSettingsItem_KeyboardShortcuts& other) = delete;
+  explicit WorkspaceSettingsItem_KeyboardShortcuts(
+      QObject* parent = nullptr) noexcept;
+  ~WorkspaceSettingsItem_KeyboardShortcuts() noexcept;
+
+  // Getters
+  const QMap<QString, QList<QKeySequence>>& get() const noexcept {
+    return mOverrides;
+  }
 
   // Setters
-  void setPlaceholderText(const QString& text) noexcept {
-    mLineEdit->setPlaceholderText(text);
-  }
-  void setCompleterListFunction(CompleterListFunction fun) noexcept {
-    mCompleterListFunction = fun;
-  }
+  void set(const QMap<QString, QList<QKeySequence>>& overrides) noexcept;
 
   // Operator Overloadings
-  SearchToolBar& operator=(const SearchToolBar& rhs) = delete;
+  WorkspaceSettingsItem_KeyboardShortcuts& operator=(
+      const WorkspaceSettingsItem_KeyboardShortcuts& rhs) = delete;
 
-signals:
-  void textEdited(const QString& text);
-  void goToTriggered(const QString& name, unsigned int index = 0);
+private:  // Methods
+  /**
+   * @copydoc ::librepcb::WorkspaceSettingsItem::restoreDefaultImpl()
+   */
+  virtual void restoreDefaultImpl() noexcept override;
+
+  /**
+   * @copydoc ::librepcb::WorkspaceSettingsItem::loadImpl()
+   */
+  void loadImpl(const SExpression& root, const Version& fileFormat) override;
+
+  /**
+   * @copydoc ::librepcb::WorkspaceSettingsItem::serializeImpl()
+   */
+  void serializeImpl(SExpression& root) const override;
 
 private:
-  void updateCompleter() noexcept;
-  void textEditedHandler(const QString& text) noexcept;
-  void enterPressed() noexcept;
-
-private:
-  CompleterListFunction mCompleterListFunction;
-  QScopedPointer<QLineEdit> mLineEdit;
-  unsigned int mIndex;  ///< Number of searches with the current search term
+  QMap<QString, SExpression> mNodes;
+  QMap<QString, QList<QKeySequence>> mOverrides;
 };
 
 /*******************************************************************************
  *  End of File
  ******************************************************************************/
 
-}  // namespace editor
 }  // namespace librepcb
 
 #endif

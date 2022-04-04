@@ -53,6 +53,10 @@ add_library(
   dialogs/textpropertiesdialog.cpp
   dialogs/textpropertiesdialog.h
   dialogs/textpropertiesdialog.ui
+  editorcommand.cpp
+  editorcommand.h
+  editorcommandcategory.h
+  editorcommandset.h
   library/cat/categorychooserdialog.cpp
   library/cat/categorychooserdialog.h
   library/cat/categorychooserdialog.ui
@@ -318,6 +322,10 @@ add_library(
   modelview/comboboxdelegate.cpp
   modelview/comboboxdelegate.h
   modelview/editablelistmodel.h
+  modelview/keyboardshortcutsmodel.cpp
+  modelview/keyboardshortcutsmodel.h
+  modelview/keysequencedelegate.cpp
+  modelview/keysequencedelegate.h
   modelview/lengthdelegate.cpp
   modelview/lengthdelegate.h
   modelview/pathmodel.cpp
@@ -633,6 +641,8 @@ add_library(
   utils/exclusiveactiongroup.h
   utils/halignactiongroup.cpp
   utils/halignactiongroup.h
+  utils/menubuilder.cpp
+  utils/menubuilder.h
   utils/toolbarproxy.cpp
   utils/toolbarproxy.h
   utils/undostackactiongroup.cpp
@@ -663,6 +673,8 @@ add_library(
   widgets/graphicsview.cpp
   widgets/graphicsview.h
   widgets/if_graphicsvieweventhandler.h
+  widgets/keysequenceseditorwidget.cpp
+  widgets/keysequenceseditorwidget.h
   widgets/lengthedit.cpp
   widgets/lengthedit.h
   widgets/lengtheditbase.cpp

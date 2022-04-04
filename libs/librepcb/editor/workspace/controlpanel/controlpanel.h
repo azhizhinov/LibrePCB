@@ -23,6 +23,8 @@
 /*******************************************************************************
  *  Includes
  ******************************************************************************/
+#include <librepcb/core/fileio/filepath.h>
+
 #include <QtCore>
 #include <QtWidgets>
 
@@ -93,12 +95,6 @@ private slots:
   void projectEditorClosed() noexcept;
 
   // Actions
-  void on_actionNew_Project_triggered();
-  void on_actionOpen_Project_triggered();
-  void on_actionOpen_Library_Manager_triggered();
-  void on_actionClose_all_open_projects_triggered();
-  void on_actionSwitch_Workspace_triggered();
-  void on_actionWorkspace_Settings_triggered();
   void on_projectTreeView_clicked(const QModelIndex& index);
   void on_projectTreeView_doubleClicked(const QModelIndex& index);
   void on_projectTreeView_customContextMenuRequested(const QPoint& pos);
@@ -109,18 +105,21 @@ private slots:
   void on_recentProjectsListView_customContextMenuRequested(const QPoint& pos);
   void on_favoriteProjectsListView_customContextMenuRequested(
       const QPoint& pos);
-  void on_actionRescanLibraries_triggered();
 
 private:
   // General private methods
+  void createActions() noexcept;
+  void createMenus() noexcept;
   void saveSettings();
   void loadSettings();
   void updateNoLibrariesWarningVisibility() noexcept;
+  void openLibraryManager() noexcept;
+  void switchWorkspace() noexcept;
   void showProjectReadmeInBrowser(const FilePath& projectFilePath) noexcept;
 
   // Project Management
 
-  ProjectEditor* newProject(const FilePath& parentDir) noexcept;
+  ProjectEditor* newProject(FilePath parentDir = FilePath()) noexcept;
 
   /**
    * @brief Open a project with the editor (or bring an already opened editor to
@@ -136,11 +135,12 @@ private:
    * @brief Open a project with the editor (or bring an already opened editor to
    * front)
    *
-   * @param filepath  The filepath to the *.lpp project file to open
+   * @param filepath  The filepath to the *.lpp project file to open. If invalid
+   *                  (the default), a file dialog will be shown to select it.
    *
    * @return The pointer to the opened project editor (nullptr on error)
    */
-  ProjectEditor* openProject(const FilePath& filepath) noexcept;
+  ProjectEditor* openProject(FilePath filepath = FilePath()) noexcept;
 
   /**
    * @brief Close an opened project editor
@@ -222,6 +222,20 @@ private:
   QHash<QString, ProjectEditor*> mOpenProjectEditors;
   QHash<FilePath, LibraryEditor*> mOpenLibraryEditors;
   QScopedPointer<ProjectLibraryUpdater> mProjectLibraryUpdater;
+
+  // Actions
+  QScopedPointer<QAction> mActionNewProject;
+  QScopedPointer<QAction> mActionOpenProject;
+  QScopedPointer<QAction> mActionCloseAllProjects;
+  QScopedPointer<QAction> mActionSwitchWorkspace;
+  QScopedPointer<QAction> mActionQuit;
+  QScopedPointer<QAction> mActionRescanLibraries;
+  QScopedPointer<QAction> mActionLibraryManager;
+  QScopedPointer<QAction> mActionWorkspaceSettings;
+  QScopedPointer<QAction> mActionOnlineDocumentation;
+  QScopedPointer<QAction> mActionWebsite;
+  QScopedPointer<QAction> mActionAboutLibrePcb;
+  QScopedPointer<QAction> mActionAboutQt;
 };
 
 /*******************************************************************************

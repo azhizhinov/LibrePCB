@@ -119,14 +119,8 @@ private:  // Data
   QScopedPointer<CmdBoardViaEdit> mCurrentViaEditCmd;
 
   // Widgets for the command toolbar
-  QHash<int, QAction*> mShapeActions;
-  QList<QAction*> mActionSeparators;
-  QScopedPointer<QLabel> mSizeLabel;
-  QScopedPointer<PositiveLengthEdit> mSizeEdit;
-  QScopedPointer<QLabel> mDrillLabel;
-  QScopedPointer<PositiveLengthEdit> mDrillEdit;
-  QScopedPointer<QLabel> mNetSignalLabel;
-  QScopedPointer<QComboBox> mNetSignalComboBox;
+  QHash<int, QPointer<QAction>> mShapeActions;
+  QPointer<QComboBox> mNetSignalComboBox;
 };
 
 /*******************************************************************************

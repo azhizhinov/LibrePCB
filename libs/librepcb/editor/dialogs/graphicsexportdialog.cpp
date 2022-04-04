@@ -22,6 +22,7 @@
  ******************************************************************************/
 #include "graphicsexportdialog.h"
 
+#include "../editorcommandset.h"
 #include "../utils/editortoolbox.h"
 #include "filedialog.h"
 #include "ui_graphicsexportdialog.h"
@@ -351,43 +352,38 @@ GraphicsExportDialog::GraphicsExportDialog(
   // Content.
   if (mMode == Mode::Board) {
     QAction* actionNew =
-        new QAction(QIcon(":/img/actions/new.png"), tr("&New"), this);
-    actionNew->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_N));
-    connect(actionNew, &QAction::triggered, this, [this]() {
-      QList<ContentItem> items = getPageContent();
-      items.append(ContentItem{"", false, false, {}});
-      setPageContent(items);
-      if (auto item = mUi->treeContent->topLevelItem(items.count() - 1)) {
-        mUi->treeContent->editItem(item, 0);
-      }
-    });
+        EditorCommandSet::instance().newItem.createAction(this, this, [this]() {
+          QList<ContentItem> items = getPageContent();
+          items.append(ContentItem{"", false, false, {}});
+          setPageContent(items);
+          if (auto item = mUi->treeContent->topLevelItem(items.count() - 1)) {
+            mUi->treeContent->editItem(item, 0);
+          }
+        });
     mUi->treeContent->addAction(actionNew);
 
     QAction* actionRemove =
-        new QAction(QIcon(":/img/actions/delete.png"), tr("&Remove"), this);
-    actionRemove->setShortcut(Qt::Key_Delete);
-    connect(actionRemove, &QAction::triggered, this, [this]() {
-      QModelIndexList indices =
-          mUi->treeContent->selectionModel()->selectedIndexes();
-      if ((!indices.isEmpty()) && indices.first().isValid() &&
-          (!indices.first().parent().isValid()) &&
-          (indices.first().row() >= 0) &&
-          (indices.first().row() < mPageContentItems.count())) {
-        QList<ContentItem> items = getPageContent();
-        items.removeAt(indices.first().row());
-        setPageContent(items);
-      }
-    });
+        EditorCommandSet::instance().remove.createAction(this, this, [this]() {
+          QModelIndexList indices =
+              mUi->treeContent->selectionModel()->selectedIndexes();
+          if ((!indices.isEmpty()) && indices.first().isValid() &&
+              (!indices.first().parent().isValid()) &&
+              (indices.first().row() >= 0) &&
+              (indices.first().row() < mPageContentItems.count())) {
+            QList<ContentItem> items = getPageContent();
+            items.removeAt(indices.first().row());
+            setPageContent(items);
+          }
+        });
     mUi->treeContent->addAction(actionRemove);
 
     QAction* actionRename =
-        new QAction(QIcon(":/img/actions/edit.png"), tr("R&ename"), this);
-    actionRename->setShortcut(Qt::Key_F2);
-    connect(actionRename, &QAction::triggered, this, [this]() {
-      foreach (auto item, mUi->treeContent->selectedItems()) {
-        mUi->treeContent->editItem(item, 0);
-      }
-    });
+        EditorCommandSet::instance().renameItem.createAction(
+            this, this, [this]() {
+              foreach (auto item, mUi->treeContent->selectedItems()) {
+                mUi->treeContent->editItem(item, 0);
+              }
+            });
     mUi->treeContent->addAction(actionRename);
 
     mUi->treeContent->header()->setSectionResizeMode(0, QHeaderView::Stretch);
@@ -1410,6 +1406,7 @@ QPrinter::DuplexMode GraphicsExportDialog::getDuplex() const noexcept {
 
 void GraphicsExportDialog::setPageContent(
     const QList<ContentItem>& items) noexcept {
+  QSignalBlocker signalBlocker(mUi->treeContent);  // Avoid recursion.
   mUi->treeContent->clear();
   mPageContentItems = items;
   foreach (const ContentItem& item, items) {

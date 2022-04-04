@@ -23,6 +23,7 @@
 #include "boardeditorstate_drawtrace.h"
 
 #include "../../../undostack.h"
+#include "../../../utils/toolbarproxy.h"
 #include "../../../widgets/graphicsview.h"
 #include "../../../widgets/positivelengthedit.h"
 #include "../../cmd/cmdboardnetsegmentadd.h"
@@ -103,25 +104,25 @@ bool BoardEditorState_DrawTrace::entry() noexcept {
   // Add wire mode actions to the "command" toolbar
   mWireModeActions.insert(
       WireMode_HV,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_h_v.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_h_v.png"), ""))));
   mWireModeActions.insert(
       WireMode_VH,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_v_h.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_v_h.png"), ""))));
   mWireModeActions.insert(
       WireMode_9045,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_90_45.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_90_45.png"), ""))));
   mWireModeActions.insert(
       WireMode_4590,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_45_90.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_45_90.png"), ""))));
   mWireModeActions.insert(
       WireMode_Straight,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_straight.png"), ""));
-  mActionSeparators.append(mContext.editorUi.commandToolbar->addSeparator());
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_straight.png"), ""))));
+  mContext.commandToolBar.addSeparator();
   updateWireModeActionsCheckedState();
 
   // Connect the wire mode actions with the slot
@@ -133,33 +134,26 @@ bool BoardEditorState_DrawTrace::entry() noexcept {
     });
   }
 
-  // Add the "Width:" label to the toolbar
-  mWidthLabel.reset(new QLabel(tr("Width:")));
-  mWidthLabel->setIndent(10);
-  mContext.editorUi.commandToolbar->addWidget(mWidthLabel.data());
-
   // Add the widths combobox to the toolbar
-  mWidthEdit.reset(new PositiveLengthEdit());
+  mContext.commandToolBar.addLabel(tr("Width:"), 10);
+  mWidthEdit = new PositiveLengthEdit();
   mWidthEdit->setValue(mCurrentWidth);
-  mContext.editorUi.commandToolbar->addWidget(mWidthEdit.data());
   connect(mWidthEdit.data(), &PositiveLengthEdit::valueChanged, this,
           &BoardEditorState_DrawTrace::wireWidthEditValueChanged);
+  mContext.commandToolBar.addWidget(
+      std::unique_ptr<PositiveLengthEdit>(mWidthEdit));
 
   // Add the auto width checkbox to the toolbar
-  mAutoWidthEdit.reset(new QCheckBox(tr("Auto")));
-  mAutoWidthEdit->setChecked(mCurrentAutoWidth);
-  mContext.editorUi.commandToolbar->addWidget(mAutoWidthEdit.data());
-  connect(mAutoWidthEdit.data(), &QCheckBox::toggled, this,
+  std::unique_ptr<QCheckBox> autoWidthCheckBox(new QCheckBox(tr("Auto")));
+  autoWidthCheckBox->setChecked(mCurrentAutoWidth);
+  connect(autoWidthCheckBox.get(), &QCheckBox::toggled, this,
           &BoardEditorState_DrawTrace::wireAutoWidthEditToggled);
-  mActionSeparators.append(mContext.editorUi.commandToolbar->addSeparator());
-
-  // Add the "Layer:" label to the toolbar
-  mLayerLabel.reset(new QLabel(tr("Layer:")));
-  mLayerLabel->setIndent(10);
-  mContext.editorUi.commandToolbar->addWidget(mLayerLabel.data());
+  mContext.commandToolBar.addWidget(std::move(autoWidthCheckBox));
+  mContext.commandToolBar.addSeparator();
 
   // Add the layers combobox to the toolbar
-  mLayerComboBox.reset(new QComboBox());
+  mContext.commandToolBar.addLabel(tr("Layer:"), 10);
+  mLayerComboBox = new QComboBox();
   mLayerComboBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
   mLayerComboBox->setInsertPolicy(QComboBox::NoInsert);
   foreach (const auto& layer, board->getLayerStack().getAllLayers()) {
@@ -168,23 +162,25 @@ bool BoardEditorState_DrawTrace::entry() noexcept {
     }
   }
   mLayerComboBox->setCurrentIndex(mLayerComboBox->findData(mCurrentLayerName));
-  mContext.editorUi.commandToolbar->addWidget(mLayerComboBox.data());
   connect(
       mLayerComboBox.data(),
       static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
       this, &BoardEditorState_DrawTrace::layerComboBoxIndexChanged);
+  mContext.commandToolBar.addWidget(std::unique_ptr<QComboBox>(mLayerComboBox));
 
   // Add shape actions to the "command" toolbar
-  mShapeActions.insert(static_cast<int>(Via::Shape::Round),
-                       mContext.editorUi.commandToolbar->addAction(
-                           QIcon(":/img/command_toolbars/via_round.png"), ""));
-  mShapeActions.insert(static_cast<int>(Via::Shape::Square),
-                       mContext.editorUi.commandToolbar->addAction(
-                           QIcon(":/img/command_toolbars/via_square.png"), ""));
+  mShapeActions.insert(
+      static_cast<int>(Via::Shape::Round),
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/via_round.png"), ""))));
+  mShapeActions.insert(
+      static_cast<int>(Via::Shape::Square),
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/via_square.png"), ""))));
   mShapeActions.insert(
       static_cast<int>(Via::Shape::Octagon),
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/via_octagon.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/via_octagon.png"), ""))));
   updateShapeActionsCheckedState();
 
   // Connect the shape actions with the slot updateShapeActionsCheckedState()
@@ -195,30 +191,24 @@ bool BoardEditorState_DrawTrace::entry() noexcept {
     });
   }
 
-  // Add the "Size:" label to the toolbar
-  mSizeLabel.reset(new QLabel(tr("Size:")));
-  mSizeLabel->setIndent(10);
-  mContext.editorUi.commandToolbar->addWidget(mSizeLabel.data());
-
   // Add the size combobox to the toolbar
-  mSizeEdit.reset(new PositiveLengthEdit());
+  mContext.commandToolBar.addLabel(tr("Size:"), 10);
+  mSizeEdit = new PositiveLengthEdit();
   mSizeEdit->setValue(mCurrentViaProperties.getSize());
-  mContext.editorUi.commandToolbar->addWidget(mSizeEdit.data());
   connect(mSizeEdit.data(), &PositiveLengthEdit::valueChanged, this,
           &BoardEditorState_DrawTrace::sizeEditValueChanged);
-
-  // Add the "Drill:" label to the toolbar
-  mDrillLabel.reset(new QLabel(tr("Drill:")));
-  mDrillLabel->setIndent(10);
-  mContext.editorUi.commandToolbar->addWidget(mDrillLabel.data());
+  mContext.commandToolBar.addWidget(
+      std::unique_ptr<PositiveLengthEdit>(mSizeEdit));
 
   // Add the drill combobox to the toolbar
-  mDrillEdit.reset(new PositiveLengthEdit());
+  mContext.commandToolBar.addLabel(tr("Drill:"), 10);
+  mDrillEdit = new PositiveLengthEdit();
   mDrillEdit->setValue(mCurrentViaProperties.getDrillDiameter());
-  mContext.editorUi.commandToolbar->addWidget(mDrillEdit.data());
   connect(mDrillEdit.data(), &PositiveLengthEdit::valueChanged, this,
           &BoardEditorState_DrawTrace::drillDiameterEditValueChanged);
-  mActionSeparators.append(mContext.editorUi.commandToolbar->addSeparator());
+  mContext.commandToolBar.addWidget(
+      std::unique_ptr<PositiveLengthEdit>(mDrillEdit));
+  mContext.commandToolBar.addSeparator();
 
   // Change the cursor
   mContext.editorGraphicsView.setCursor(Qt::CrossCursor);
@@ -231,21 +221,9 @@ bool BoardEditorState_DrawTrace::exit() noexcept {
   if (!abortPositioning(true)) return false;
 
   // Remove actions / widgets from the "command" toolbar
-  mAutoWidthEdit.reset();
-  mWidthEdit.reset();
-  mWidthLabel.reset();
-  mDrillEdit.reset();
-  mDrillLabel.reset();
-  mSizeEdit.reset();
-  mSizeLabel.reset();
-  qDeleteAll(mShapeActions);
-  mShapeActions.clear();
-  mLayerComboBox.reset();
-  mLayerLabel.reset();
-  qDeleteAll(mActionSeparators);
-  mActionSeparators.clear();
-  qDeleteAll(mWireModeActions);
+  mContext.commandToolBar.clear();
   mWireModeActions.clear();
+  mShapeActions.clear();
 
   // Reset the cursor
   mContext.editorGraphicsView.setCursor(Qt::ArrowCursor);

@@ -23,6 +23,7 @@
 #include "schematiceditorstate_addcomponent.h"
 
 #include "../../../undostack.h"
+#include "../../../utils/toolbarproxy.h"
 #include "../../../widgets/attributeunitcombobox.h"
 #include "../../../widgets/graphicsview.h"
 #include "../../addcomponentdialog.h"
@@ -64,7 +65,6 @@ SchematicEditorState_AddComponent::SchematicEditorState_AddComponent(
     mCurrentSymbolToPlace(nullptr),
     mCurrentSymbolEditCommand(nullptr),
     // command toolbar actions / widgets:
-    mValueLabel(nullptr),
     mValueComboBox(nullptr),
     mAttributeValueEdit(nullptr),
     mAttributeValueEditAction(nullptr),
@@ -84,32 +84,28 @@ bool SchematicEditorState_AddComponent::entry() noexcept {
   Q_ASSERT(mIsUndoCmdActive == false);
   mLastAngle.setAngleMicroDeg(0);
 
-  // add the "Value:" label to the toolbar
-  mValueLabel = new QLabel(tr("Value:"));
-  mValueLabel->setIndent(10);
-  mContext.editorUi.commandToolbar->addWidget(mValueLabel);
-
   // add the value text edit to the toolbar
+  mContext.commandToolBar.addLabel(tr("Value:"), 10);
   mValueComboBox = new QComboBox();
   mValueComboBox->setEditable(true);
   mValueComboBox->setFixedHeight(QLineEdit().sizeHint().height());
   mValueComboBox->setMinimumWidth(200);
   mValueComboBox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-  mContext.editorUi.commandToolbar->addWidget(mValueComboBox);
+  mContext.commandToolBar.addWidget(std::unique_ptr<QWidget>(mValueComboBox));
 
   // add the attribute text edit to the toolbar
   mAttributeValueEdit = new QLineEdit();
   mAttributeValueEdit->setClearButtonEnabled(true);
   mAttributeValueEdit->setSizePolicy(QSizePolicy::Preferred,
                                      QSizePolicy::Fixed);
-  mAttributeValueEditAction =
-      mContext.editorUi.commandToolbar->addWidget(mAttributeValueEdit);
+  mAttributeValueEditAction = mContext.commandToolBar.addWidget(
+      std::unique_ptr<QWidget>(mAttributeValueEdit));
 
   // add the attribute unit combobox to the toolbar
   mAttributeUnitComboBox = new AttributeUnitComboBox();
   mAttributeUnitComboBox->setFixedHeight(QLineEdit().sizeHint().height());
-  mAttributeUnitComboBoxAction =
-      mContext.editorUi.commandToolbar->addWidget(mAttributeUnitComboBox);
+  mAttributeUnitComboBoxAction = mContext.commandToolBar.addWidget(
+      std::unique_ptr<QWidget>(mAttributeUnitComboBox));
 
   // Update attribute toolbar widgets and start watching for modifications
   updateValueToolbar();
@@ -131,16 +127,7 @@ bool SchematicEditorState_AddComponent::exit() noexcept {
   Q_ASSERT(mIsUndoCmdActive == false);
 
   // Remove actions / widgets from the "command" toolbar
-  mAttributeUnitComboBoxAction = nullptr;
-  mAttributeValueEditAction = nullptr;
-  delete mAttributeUnitComboBox;
-  mAttributeUnitComboBox = nullptr;
-  delete mAttributeValueEdit;
-  mAttributeValueEdit = nullptr;
-  delete mValueComboBox;
-  mValueComboBox = nullptr;
-  delete mValueLabel;
-  mValueLabel = nullptr;
+  mContext.commandToolBar.clear();
 
   return true;
 }

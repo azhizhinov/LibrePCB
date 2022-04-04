@@ -55,6 +55,19 @@ void EditorToolbox::removeFormLayoutRow(QLabel& label) noexcept {
       << label.objectName() << ".";
 }
 
+void EditorToolbox::deleteLayoutItemRecursively(QLayoutItem* item) noexcept {
+  if (QWidget* widget = item->widget()) {
+    delete widget;
+  } else if (QLayout* layout = item->layout()) {
+    for (int i = 0; i < layout->count(); ++i) {
+      deleteLayoutItemRecursively(layout->takeAt(i));
+    }
+  } else if (QSpacerItem* spacer = item->spacerItem()) {
+    delete spacer;
+  }
+  delete item;
+}
+
 /*******************************************************************************
  *  Private Methods
  ******************************************************************************/

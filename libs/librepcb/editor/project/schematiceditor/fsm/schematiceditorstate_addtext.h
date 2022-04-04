@@ -105,12 +105,7 @@ private:  // Data
   QScopedPointer<CmdTextEdit> mCurrentTextEditCmd;
 
   // Widgets for the command toolbar
-  QScopedPointer<QLabel> mLayerLabel;
-  QScopedPointer<GraphicsLayerComboBox> mLayerComboBox;
-  QScopedPointer<QLabel> mTextLabel;
-  QScopedPointer<QComboBox> mTextComboBox;
-  QScopedPointer<QLabel> mHeightLabel;
-  QScopedPointer<PositiveLengthEdit> mHeightEdit;
+  QPointer<QComboBox> mTextComboBox;
 };
 
 /*******************************************************************************

@@ -22,8 +22,11 @@
  ******************************************************************************/
 #include "workspacesettingsdialog.h"
 
+#include "../editorcommandset.h"
 #include "../modelview/comboboxdelegate.h"
 #include "../modelview/editablelistmodel.h"
+#include "../modelview/keyboardshortcutsmodel.h"
+#include "../modelview/keysequencedelegate.h"
 #include "ui_workspacesettingsdialog.h"
 
 #include <librepcb/core/application.h>
@@ -52,6 +55,8 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(WorkspaceSettings& settings,
     mLibLocaleOrderModel(new LibraryLocaleOrderModel()),
     mLibNormOrderModel(new LibraryNormOrderModel()),
     mRepositoryUrlsModel(new RepositoryUrlModel()),
+    mKeyboardShortcutsModel(new KeyboardShortcutsModel(this)),
+    mKeyboardShortcutsFilterModel(new QSortFilterProxyModel(this)),
     mUi(new Ui::WorkspaceSettingsDialog) {
   mUi->setupUi(this);
 
@@ -177,6 +182,32 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(WorkspaceSettings& settings,
     });
   }
 
+  // Initialize keyboard shortcuts widgets
+  {
+    mKeyboardShortcutsFilterModel->setSourceModel(
+        mKeyboardShortcutsModel.data());
+    mKeyboardShortcutsFilterModel->setFilterCaseSensitivity(
+        Qt::CaseInsensitive);
+    mKeyboardShortcutsFilterModel->setFilterKeyColumn(-1);  // All columns.
+    mKeyboardShortcutsFilterModel->setRecursiveFilteringEnabled(true);
+    connect(mUi->edtCommandFilter, &QLineEdit::textChanged,
+            mKeyboardShortcutsFilterModel.data(),
+            &QSortFilterProxyModel::setFilterFixedString);
+    connect(mUi->edtCommandFilter, &QLineEdit::textChanged,
+            mUi->treeKeyboardShortcuts, &QTreeView::expandAll);
+    mUi->treeKeyboardShortcuts->setModel(mKeyboardShortcutsFilterModel.data());
+    mUi->treeKeyboardShortcuts->header()->setMinimumSectionSize(
+        QKeySequenceEdit().sizeHint().width());
+    mUi->treeKeyboardShortcuts->header()->setSectionResizeMode(
+        0, QHeaderView::ResizeToContents);
+    mUi->treeKeyboardShortcuts->header()->setSectionResizeMode(
+        1, QHeaderView::Stretch);
+    mUi->treeKeyboardShortcuts->header()->setSectionResizeMode(
+        2, QHeaderView::ResizeToContents);
+    KeySequenceDelegate* delegate = new KeySequenceDelegate(this);
+    mUi->treeKeyboardShortcuts->setItemDelegateForColumn(2, delegate);
+  }
+
   // Now load all current settings
   loadSettings();
 
@@ -286,6 +317,10 @@ void WorkspaceSettingsDialog::loadSettings() noexcept {
   // External PDF reader behaviour
   mUi->pdfOpenGroup->button(static_cast<int>(mSettings.pdfOpenBehavior.get()))
       ->setChecked(true);
+
+  // Keyboard Shortcuts
+  mKeyboardShortcutsModel->setOverrides(mSettings.keyboardShortcuts.get());
+  mUi->treeKeyboardShortcuts->expandAll();
 }
 
 void WorkspaceSettingsDialog::saveSettings() noexcept {
@@ -329,6 +364,9 @@ void WorkspaceSettingsDialog::saveSettings() noexcept {
     mSettings.pdfOpenBehavior.set(
         static_cast<WorkspaceSettings::PdfOpenBehavior>(
             mUi->pdfOpenGroup->checkedId()));
+
+    // Keyboard shortcuts
+    mSettings.keyboardShortcuts.set(mKeyboardShortcutsModel->getOverrides());
 
     mSettings.saveToFile();  // can throw
   } catch (const Exception& e) {

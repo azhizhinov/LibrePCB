@@ -23,6 +23,7 @@
 #include "schematiceditorstate_drawwire.h"
 
 #include "../../../undostack.h"
+#include "../../../utils/toolbarproxy.h"
 #include "../../../widgets/graphicsview.h"
 #include "../../cmd/cmdchangenetsignalofschematicnetsegment.h"
 #include "../../cmd/cmdcombineschematicnetsegments.h"
@@ -90,25 +91,25 @@ bool SchematicEditorState_DrawWire::entry() noexcept {
   // Add wire mode actions to the "command" toolbar
   mWireModeActions.insert(
       WireMode_HV,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_h_v.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_h_v.png"), ""))));
   mWireModeActions.insert(
       WireMode_VH,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_v_h.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_v_h.png"), ""))));
   mWireModeActions.insert(
       WireMode_9045,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_90_45.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_90_45.png"), ""))));
   mWireModeActions.insert(
       WireMode_4590,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_45_90.png"), ""));
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_45_90.png"), ""))));
   mWireModeActions.insert(
       WireMode_Straight,
-      mContext.editorUi.commandToolbar->addAction(
-          QIcon(":/img/command_toolbars/wire_straight.png"), ""));
-  mActionSeparators.append(mContext.editorUi.commandToolbar->addSeparator());
+      mContext.commandToolBar.addAction(std::unique_ptr<QAction>(
+          new QAction(QIcon(":/img/command_toolbars/wire_straight.png"), ""))));
+  mContext.commandToolBar.addSeparator();
   updateWireModeActionsCheckedState();
 
   // connect the wire mode actions with the slot
@@ -133,10 +134,8 @@ bool SchematicEditorState_DrawWire::exit() noexcept {
   }
 
   // Remove actions / widgets from the "command" toolbar
-  qDeleteAll(mWireModeActions);
+  mContext.commandToolBar.clear();
   mWireModeActions.clear();
-  qDeleteAll(mActionSeparators);
-  mActionSeparators.clear();
 
   // change the cursor
   mContext.editorGraphicsView.setCursor(Qt::ArrowCursor);
@@ -685,8 +684,10 @@ Point SchematicEditorState_DrawWire::updateNetpointPositions(
 void SchematicEditorState_DrawWire::
     updateWireModeActionsCheckedState() noexcept {
   foreach (WireMode key, mWireModeActions.keys()) {
-    mWireModeActions.value(key)->setCheckable(key == mWireMode);
-    mWireModeActions.value(key)->setChecked(key == mWireMode);
+    if (QPointer<QAction> action = mWireModeActions.value(key)) {
+      action->setCheckable(key == mWireMode);
+      action->setChecked(key == mWireMode);
+    }
   }
 }
 

@@ -17,80 +17,67 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBREPCB_EDITOR_BOARDEDITORSTATE_ADDHOLE_H
-#define LIBREPCB_EDITOR_BOARDEDITORSTATE_ADDHOLE_H
+#ifndef LIBREPCB_EDITOR_KEYSEQUENCESEDITORWIDGET_H
+#define LIBREPCB_EDITOR_KEYSEQUENCESEDITORWIDGET_H
 
 /*******************************************************************************
  *  Includes
  ******************************************************************************/
-#include "boardeditorstate.h"
-
-#include <librepcb/core/project/board/items/bi_hole.h>
+#include <optional/tl/optional.hpp>
 
 #include <QtCore>
+#include <QtWidgets>
 
 /*******************************************************************************
  *  Namespace / Forward Declarations
  ******************************************************************************/
 namespace librepcb {
-
-class Board;
-
 namespace editor {
 
-class CmdHoleEdit;
-class PositiveLengthEdit;
-
 /*******************************************************************************
- *  Class BoardEditorState_AddHole
+ *  Class KeySequencesEditorWidget
  ******************************************************************************/
 
 /**
- * @brief The "add hole" state/tool of the board editor
+ * @brief A widget to modify a list of QKeySequence objects
+ *
+ * Used for ::librepcb::editor::KeySequenceDelegate.
  */
-class BoardEditorState_AddHole final : public BoardEditorState {
+class KeySequencesEditorWidget final : public QWidget {
   Q_OBJECT
 
 public:
   // Constructors / Destructor
-  BoardEditorState_AddHole() = delete;
-  BoardEditorState_AddHole(const BoardEditorState_AddHole& other) = delete;
-  explicit BoardEditorState_AddHole(const Context& context) noexcept;
-  virtual ~BoardEditorState_AddHole() noexcept;
+  KeySequencesEditorWidget() = delete;
+  explicit KeySequencesEditorWidget(const QList<QKeySequence>& defaultSequences,
+                                    QWidget* parent = nullptr) noexcept;
+  KeySequencesEditorWidget(const KeySequencesEditorWidget& other) = delete;
+  ~KeySequencesEditorWidget() noexcept;
 
   // General Methods
-  virtual bool entry() noexcept override;
-  virtual bool exit() noexcept override;
-
-  // Event Handlers
-  virtual bool processGraphicsSceneMouseMoved(
-      QGraphicsSceneMouseEvent& e) noexcept override;
-  virtual bool processGraphicsSceneLeftMouseButtonPressed(
-      QGraphicsSceneMouseEvent& e) noexcept override;
-  virtual bool processGraphicsSceneLeftMouseButtonDoubleClicked(
-      QGraphicsSceneMouseEvent& e) noexcept override;
+  const tl::optional<QList<QKeySequence>>& getOverrides() const noexcept {
+    return mOverrides;
+  }
+  void setOverrides(
+      const tl::optional<QList<QKeySequence>>& overrides) noexcept;
+  void setRowHeight(int height) noexcept;
 
   // Operator Overloadings
-  BoardEditorState_AddHole& operator=(const BoardEditorState_AddHole& rhs) =
+  KeySequencesEditorWidget& operator=(const KeySequencesEditorWidget& rhs) =
       delete;
 
+signals:
+  void applyTriggered();
+  void cancelTriggered();
+
 private:  // Methods
-  bool addHole(Board& board, const Point& pos) noexcept;
-  bool updatePosition(const Point& pos) noexcept;
-  bool fixPosition(const Point& pos) noexcept;
-  bool abortCommand(bool showErrMsgBox) noexcept;
-  void diameterEditValueChanged(const PositiveLength& value) noexcept;
-  void makeLayerVisible() noexcept;
+  void updateWidgets() noexcept;
 
 private:  // Data
-  // State
-  bool mIsUndoCmdActive;
-  PositiveLength mLastDiameter;
-
-  // Information about the current hole to place. Only valid if
-  // mIsUndoCmdActive == true.
-  BI_Hole* mCurrentHoleToPlace;
-  QScopedPointer<CmdHoleEdit> mCurrentHoleEditCmd;
+  QPointer<QVBoxLayout> mLayout;
+  QList<QKeySequence> mDefault;
+  tl::optional<QList<QKeySequence>> mOverrides;
+  int mRowHeight;
 };
 
 /*******************************************************************************

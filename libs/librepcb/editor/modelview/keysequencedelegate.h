@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBREPCB_EDITOR_SEARCHTOOLBAR_H
-#define LIBREPCB_EDITOR_SEARCHTOOLBAR_H
+#ifndef LIBREPCB_EDITOR_KEYSEQUENCEDELEGATE_H
+#define LIBREPCB_EDITOR_KEYSEQUENCEDELEGATE_H
 
 /*******************************************************************************
  *  Includes
@@ -26,56 +26,41 @@
 #include <QtCore>
 #include <QtWidgets>
 
-#include <functional>
-
 /*******************************************************************************
  *  Namespace / Forward Declarations
  ******************************************************************************/
 namespace librepcb {
 namespace editor {
 
+class KeySequencesEditorWidget;
+
 /*******************************************************************************
- *  Class SearchToolBar
+ *  Class KeySequenceDelegate
  ******************************************************************************/
 
 /**
- * @brief The SearchToolBar class
+ * @brief Subclass of QStyledItemDelegate to display/edit a QKeySequence
  */
-class SearchToolBar final : public QToolBar {
+class KeySequenceDelegate final : public QStyledItemDelegate {
   Q_OBJECT
 
 public:
-  typedef std::function<QStringList()> CompleterListFunction;
-
   // Constructors / Destructor
-  SearchToolBar(const SearchToolBar& other) = delete;
-  explicit SearchToolBar(QWidget* parent = nullptr) noexcept;
-  ~SearchToolBar() noexcept;
+  explicit KeySequenceDelegate(QObject* parent = nullptr) noexcept;
+  KeySequenceDelegate(const KeySequenceDelegate& other) = delete;
+  ~KeySequenceDelegate() noexcept;
 
-  // Setters
-  void setPlaceholderText(const QString& text) noexcept {
-    mLineEdit->setPlaceholderText(text);
-  }
-  void setCompleterListFunction(CompleterListFunction fun) noexcept {
-    mCompleterListFunction = fun;
-  }
+  // Inherited from QStyledItemDelegate
+  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
+                        const QModelIndex& index) const override;
+  void setEditorData(QWidget* editor, const QModelIndex& index) const override;
+  void setModelData(QWidget* editor, QAbstractItemModel* model,
+                    const QModelIndex& index) const override;
+  void updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option,
+                            const QModelIndex& index) const override;
 
   // Operator Overloadings
-  SearchToolBar& operator=(const SearchToolBar& rhs) = delete;
-
-signals:
-  void textEdited(const QString& text);
-  void goToTriggered(const QString& name, unsigned int index = 0);
-
-private:
-  void updateCompleter() noexcept;
-  void textEditedHandler(const QString& text) noexcept;
-  void enterPressed() noexcept;
-
-private:
-  CompleterListFunction mCompleterListFunction;
-  QScopedPointer<QLineEdit> mLineEdit;
-  unsigned int mIndex;  ///< Number of searches with the current search term
+  KeySequenceDelegate& operator=(const KeySequenceDelegate& rhs) = delete;
 };
 
 /*******************************************************************************

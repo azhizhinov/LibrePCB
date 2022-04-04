@@ -288,18 +288,12 @@ private:
   BI_NetPoint* mPositioningNetPoint2;  ///< the second netpoint to place
 
   // Widgets for the command toolbar
-  QHash<WireMode, QAction*> mWireModeActions;
-  QList<QAction*> mActionSeparators;
-  QScopedPointer<QLabel> mLayerLabel;
-  QScopedPointer<QComboBox> mLayerComboBox;
-  QHash<int, QAction*> mShapeActions;
-  QScopedPointer<QLabel> mSizeLabel;
-  QScopedPointer<PositiveLengthEdit> mSizeEdit;
-  QScopedPointer<QLabel> mDrillLabel;
-  QScopedPointer<PositiveLengthEdit> mDrillEdit;
-  QScopedPointer<QLabel> mWidthLabel;
-  QScopedPointer<PositiveLengthEdit> mWidthEdit;
-  QScopedPointer<QCheckBox> mAutoWidthEdit;
+  QHash<WireMode, QPointer<QAction>> mWireModeActions;
+  QPointer<QComboBox> mLayerComboBox;
+  QHash<int, QPointer<QAction>> mShapeActions;
+  QPointer<PositiveLengthEdit> mSizeEdit;
+  QPointer<PositiveLengthEdit> mDrillEdit;
+  QPointer<PositiveLengthEdit> mWidthEdit;
 };
 
 /*******************************************************************************

@@ -40,11 +40,8 @@ namespace editor {
 class GraphicsView;
 class SchematicEditor;
 class SchematicEditorState;
+class ToolBarProxy;
 class UndoStack;
-
-namespace Ui {
-class SchematicEditor;
-}
 
 /*******************************************************************************
  *  Class SchematicEditorFsm
@@ -80,8 +77,8 @@ public:
     Workspace& workspace;
     Project& project;
     SchematicEditor& editor;
-    Ui::SchematicEditor& editorUi;
     GraphicsView& editorGraphicsView;
+    ToolBarProxy& commandToolBar;
     UndoStack& undoStack;
   };
 

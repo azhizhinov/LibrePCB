@@ -24,8 +24,11 @@
 #include "libraryeditor.h"
 
 #include "../dialogs/aboutdialog.h"
+#include "../editorcommandset.h"
 #include "../utils/exclusiveactiongroup.h"
+#include "../utils/menubuilder.h"
 #include "../utils/undostackactiongroup.h"
+#include "../widgets/searchtoolbar.h"
 #include "cat/componentcategoryeditorwidget.h"
 #include "cat/packagecategoryeditorwidget.h"
 #include "cmp/componenteditorwidget.h"
@@ -66,90 +69,66 @@ LibraryEditor::LibraryEditor(Workspace& ws, const FilePath& libFp,
     mCurrentEditorWidget(nullptr),
     mLibrary(nullptr) {
   mUi->setupUi(this);
-  mUi->actionNew->setEnabled(!mIsOpenedReadOnly);
-  mUi->actionSave->setEnabled(!mIsOpenedReadOnly);
-  mUi->actionRemove->setEnabled(!mIsOpenedReadOnly);
-  connect(mUi->actionClose, &QAction::triggered, this, &LibraryEditor::close);
-  connect(mUi->actionNew, &QAction::triggered, this,
-          &LibraryEditor::newElementTriggered);
-  connect(mUi->actionSave, &QAction::triggered, this,
-          &LibraryEditor::saveTriggered);
-  connect(mUi->actionShowElementInFileManager, &QAction::triggered, this,
-          &LibraryEditor::showElementInFileExplorerTriggered);
-  connect(mUi->actionImportDxf, &QAction::triggered, this, [this]() {
-    if (mCurrentEditorWidget) mCurrentEditorWidget->importDxf();
-  });
-  connect(mUi->actionExportImage, &QAction::triggered, this, [this]() {
-    if (mCurrentEditorWidget) mCurrentEditorWidget->exportImage();
-  });
-  connect(mUi->actionExportPdf, &QAction::triggered, this, [this]() {
-    if (mCurrentEditorWidget) mCurrentEditorWidget->exportPdf();
-  });
-  connect(mUi->actionPrint, &QAction::triggered, this, [this]() {
-    if (mCurrentEditorWidget) mCurrentEditorWidget->print();
-  });
-  connect(mUi->actionImportEagleLibrary, &QAction::triggered, this,
-          [this, libFp]() {
-            EagleLibraryImportWizard wizard(mWorkspace, libFp, this);
-            wizard.exec();
-          });
-  connect(mUi->actionRescanLibraries, &QAction::triggered,
-          &mWorkspace.getLibraryDb(), &WorkspaceLibraryDb::startLibraryRescan);
-  connect(mUi->actionSelectAll, &QAction::triggered, this,
-          &LibraryEditor::selectAllTriggered);
-  connect(mUi->actionCut, &QAction::triggered, this,
-          &LibraryEditor::cutTriggered);
-  connect(mUi->actionCopy, &QAction::triggered, this,
-          &LibraryEditor::copyTriggered);
-  connect(mUi->actionPaste, &QAction::triggered, this,
-          &LibraryEditor::pasteTriggered);
-  connect(mUi->actionRotateCw, &QAction::triggered, this,
-          &LibraryEditor::rotateCwTriggered);
-  connect(mUi->actionRotateCcw, &QAction::triggered, this,
-          &LibraryEditor::rotateCcwTriggered);
-  connect(mUi->actionMirror, &QAction::triggered, this,
-          &LibraryEditor::mirrorTriggered);
-  connect(mUi->actionFlip, &QAction::triggered, this,
-          &LibraryEditor::flipTriggered);
-  connect(mUi->actionRemove, &QAction::triggered, this,
-          &LibraryEditor::removeTriggered);
-  connect(mUi->actionAbortCommand, &QAction::triggered, this,
-          &LibraryEditor::abortCommandTriggered);
-  connect(mUi->actionZoomIn, &QAction::triggered, this,
-          &LibraryEditor::zoomInTriggered);
-  connect(mUi->actionZoomOut, &QAction::triggered, this,
-          &LibraryEditor::zoomOutTriggered);
-  connect(mUi->actionZoomAll, &QAction::triggered, this,
-          &LibraryEditor::zoomAllTriggered);
-  connect(mUi->actionGridProperties, &QAction::triggered, this,
-          &LibraryEditor::editGridPropertiesTriggered);
-  connect(mUi->tabWidget, &QTabWidget::currentChanged, this,
-          &LibraryEditor::currentTabChanged);
-  connect(mUi->tabWidget, &QTabWidget::tabCloseRequested, this,
-          &LibraryEditor::tabCloseRequested);
-  connect(mUi->actionOpenWebsite, &QAction::triggered,
-          []() { QDesktopServices::openUrl(QUrl("https://librepcb.org")); });
-  connect(mUi->actionOnlineDocumentation, &QAction::triggered, []() {
-    QDesktopServices::openUrl(QUrl("https://docs.librepcb.org"));
-  });
-  connect(mUi->actionAbout, &QAction::triggered, this, [this]() {
-    AboutDialog aboutDialog(this);
-    aboutDialog.exec();
-  });
-  connect(mUi->actionAbout_Qt, &QAction::triggered, qApp,
-          &QApplication::aboutQt);
 
   // add overview tab
   EditorWidgetBase::Context context{mWorkspace, *this, false, readOnly};
   LibraryOverviewWidget* overviewWidget =
       new LibraryOverviewWidget(context, libFp);
   mLibrary = &overviewWidget->getLibrary();
+  mUi->tabWidget->addTab(overviewWidget, overviewWidget->windowIcon(),
+                         overviewWidget->windowTitle());
   connect(overviewWidget, &LibraryOverviewWidget::windowTitleChanged, this,
           &LibraryEditor::updateTabTitles);
   connect(overviewWidget, &LibraryOverviewWidget::dirtyChanged, this,
           &LibraryEditor::updateTabTitles);
   connect(overviewWidget, &EditorWidgetBase::elementEdited,
           &mWorkspace.getLibraryDb(), &WorkspaceLibraryDb::startLibraryRescan);
+  connect(overviewWidget, &LibraryOverviewWidget::newComponentCategoryTriggered,
+          this, &LibraryEditor::newComponentCategoryTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::newPackageCategoryTriggered,
+          this, &LibraryEditor::newPackageCategoryTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::newSymbolTriggered, this,
+          &LibraryEditor::newSymbolTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::newPackageTriggered, this,
+          &LibraryEditor::newPackageTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::newComponentTriggered, this,
+          &LibraryEditor::newComponentTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::newDeviceTriggered, this,
+          &LibraryEditor::newDeviceTriggered);
+  connect(overviewWidget,
+          &LibraryOverviewWidget::editComponentCategoryTriggered, this,
+          &LibraryEditor::editComponentCategoryTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::editPackageCategoryTriggered,
+          this, &LibraryEditor::editPackageCategoryTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::editSymbolTriggered, this,
+          &LibraryEditor::editSymbolTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::editPackageTriggered, this,
+          &LibraryEditor::editPackageTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::editComponentTriggered, this,
+          &LibraryEditor::editComponentTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::editDeviceTriggered, this,
+          &LibraryEditor::editDeviceTriggered);
+  connect(overviewWidget,
+          &LibraryOverviewWidget::duplicateComponentCategoryTriggered, this,
+          &LibraryEditor::duplicateComponentCategoryTriggered);
+  connect(overviewWidget,
+          &LibraryOverviewWidget::duplicatePackageCategoryTriggered, this,
+          &LibraryEditor::duplicatePackageCategoryTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::duplicateSymbolTriggered,
+          this, &LibraryEditor::duplicateSymbolTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::duplicatePackageTriggered,
+          this, &LibraryEditor::duplicatePackageTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::duplicateComponentTriggered,
+          this, &LibraryEditor::duplicateComponentTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::duplicateDeviceTriggered,
+          this, &LibraryEditor::duplicateDeviceTriggered);
+  connect(overviewWidget, &LibraryOverviewWidget::removeElementTriggered, this,
+          &LibraryEditor::closeTabIfOpen);
+
+  // remove close button on first tab (which is the library overview)
+  QTabBar* tabBar = mUi->tabWidget->tabBar();
+  Q_ASSERT(tabBar);
+  tabBar->setTabButton(0, QTabBar::RightSide, nullptr);
 
   // set window title and icon
   const QStringList localeOrder =
@@ -159,15 +138,10 @@ LibraryEditor::LibraryEditor(Workspace& ws, const FilePath& libFp,
   setWindowTitle(tr("%1 - LibrePCB Library Editor").arg(libName));
   setWindowIcon(mLibrary->getIconAsPixmap());
 
-  // setup "filter" toolbar
-  QLineEdit* filterLineEdit = new QLineEdit();
-  filterLineEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-  filterLineEdit->setMaxLength(30);  // avoid too large widget in toolbar
-  filterLineEdit->setClearButtonEnabled(true);  // to quickly reset the filter
-  filterLineEdit->setPlaceholderText(tr("Filter elements"));
-  connect(filterLineEdit, &QLineEdit::textEdited, overviewWidget,
-          &LibraryOverviewWidget::setFilter);
-  mUi->filterToolbar->addWidget(filterLineEdit);
+  // if the library was opened in read-only mode, we guess that it's a remote
+  // library and thus show a warning that all modifications are lost after the
+  // next update
+  mUi->lblRemoteLibraryWarning->setVisible(readOnly);
 
   // setup status bar
   mUi->statusBar->setFields(StatusBar::ProgressBar);
@@ -175,43 +149,6 @@ LibraryEditor::LibraryEditor(Workspace& ws, const FilePath& libFp,
   connect(&mWorkspace.getLibraryDb(), &WorkspaceLibraryDb::scanProgressUpdate,
           mUi->statusBar, &StatusBar::setProgressBarPercent,
           Qt::QueuedConnection);
-
-  // if the library was opened in read-only mode, we guess that it's a remote
-  // library and thus show a warning that all modifications are lost after the
-  // next update
-  mUi->lblRemoteLibraryWarning->setVisible(readOnly);
-
-  // create the undo stack action group
-  mUndoStackActionGroup.reset(new UndoStackActionGroup(
-      *mUi->actionUndo, *mUi->actionRedo, nullptr, nullptr, this));
-
-  // create tools action group
-  mToolsActionGroup.reset(new ExclusiveActionGroup());
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::SELECT,
-                               mUi->actionToolSelect);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_LINE,
-                               mUi->actionDrawLine);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_RECT,
-                               mUi->actionDrawRect);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_POLYGON,
-                               mUi->actionDrawPolygon);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_CIRCLE,
-                               mUi->actionDrawCircle);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_NAMES,
-                               mUi->actionAddName);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_VALUES,
-                               mUi->actionAddValue);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_TEXT,
-                               mUi->actionAddText);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_PINS,
-                               mUi->actionAddSymbolPin);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_THT_PADS,
-                               mUi->actionAddThtPad);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_SMT_PADS,
-                               mUi->actionAddSmtPad);
-  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_HOLES,
-                               mUi->actionAddHole);
-  mToolsActionGroup->setEnabled(false);
 
   // add all required schematic layers
   addLayer(GraphicsLayer::sSchematicReferences);
@@ -283,59 +220,19 @@ LibraryEditor::LibraryEditor(Workspace& ws, const FilePath& libFp,
   addLayer(GraphicsLayer::sDebugComponentSymbolsCounts);
 #endif
 
-  // Edit element signals
-  connect(overviewWidget, &LibraryOverviewWidget::newComponentCategoryTriggered,
-          this, &LibraryEditor::newComponentCategoryTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::newPackageCategoryTriggered,
-          this, &LibraryEditor::newPackageCategoryTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::newSymbolTriggered, this,
-          &LibraryEditor::newSymbolTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::newPackageTriggered, this,
-          &LibraryEditor::newPackageTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::newComponentTriggered, this,
-          &LibraryEditor::newComponentTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::newDeviceTriggered, this,
-          &LibraryEditor::newDeviceTriggered);
-  connect(overviewWidget,
-          &LibraryOverviewWidget::editComponentCategoryTriggered, this,
-          &LibraryEditor::editComponentCategoryTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::editPackageCategoryTriggered,
-          this, &LibraryEditor::editPackageCategoryTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::editSymbolTriggered, this,
-          &LibraryEditor::editSymbolTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::editPackageTriggered, this,
-          &LibraryEditor::editPackageTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::editComponentTriggered, this,
-          &LibraryEditor::editComponentTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::editDeviceTriggered, this,
-          &LibraryEditor::editDeviceTriggered);
-  connect(overviewWidget,
-          &LibraryOverviewWidget::duplicateComponentCategoryTriggered, this,
-          &LibraryEditor::duplicateComponentCategoryTriggered);
-  connect(overviewWidget,
-          &LibraryOverviewWidget::duplicatePackageCategoryTriggered, this,
-          &LibraryEditor::duplicatePackageCategoryTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::duplicateSymbolTriggered,
-          this, &LibraryEditor::duplicateSymbolTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::duplicatePackageTriggered,
-          this, &LibraryEditor::duplicatePackageTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::duplicateComponentTriggered,
-          this, &LibraryEditor::duplicateComponentTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::duplicateDeviceTriggered,
-          this, &LibraryEditor::duplicateDeviceTriggered);
-  connect(overviewWidget, &LibraryOverviewWidget::removeElementTriggered, this,
-          &LibraryEditor::closeTabIfOpen);
+  // Create all actions, window menus, toolbars and dock widgets.
+  createActions();
+  createToolBars();
+  createMenus();
 
-  mUi->tabWidget->addTab(overviewWidget, overviewWidget->windowIcon(),
-                         overviewWidget->windowTitle());
+  // Open the overview tab.
   setActiveEditorWidget(overviewWidget);
+  connect(mUi->tabWidget, &QTabWidget::currentChanged, this,
+          &LibraryEditor::currentTabChanged);
+  connect(mUi->tabWidget, &QTabWidget::tabCloseRequested, this,
+          &LibraryEditor::tabCloseRequested);
 
-  // remove close button on first tab (which is the library overview)
-  QTabBar* tabBar = mUi->tabWidget->tabBar();
-  Q_ASSERT(tabBar);
-  tabBar->setTabButton(0, QTabBar::RightSide, nullptr);
-
-  // Restore Window Geometry
+  // Restore window geometry.
   QSettings clientSettings;
   restoreGeometry(
       clientSettings.value("library_editor/window_geometry").toByteArray());
@@ -402,81 +299,6 @@ void LibraryEditor::closeTabIfOpen(const FilePath& fp) noexcept {
 /*******************************************************************************
  *  GUI Event Handlers
  ******************************************************************************/
-
-void LibraryEditor::newElementTriggered() noexcept {
-  NewElementWizard wizard(mWorkspace, *mLibrary, *this, this);
-  if (wizard.exec() == QDialog::Accepted) {
-    FilePath fp = wizard.getContext().getOutputDirectory();
-    editNewLibraryElement(wizard.getContext().mElementType, fp);
-    mWorkspace.getLibraryDb().startLibraryRescan();
-  }
-}
-
-void LibraryEditor::saveTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->save();
-}
-
-void LibraryEditor::showElementInFileExplorerTriggered() noexcept {
-  if (!mCurrentEditorWidget) return;
-  FilePath fp = mCurrentEditorWidget->getFilePath();
-  QDesktopServices::openUrl(fp.toQUrl());
-}
-
-void LibraryEditor::selectAllTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->selectAll();
-}
-
-void LibraryEditor::cutTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->cut();
-}
-
-void LibraryEditor::copyTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->copy();
-}
-
-void LibraryEditor::pasteTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->paste();
-}
-
-void LibraryEditor::rotateCwTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->rotateCw();
-}
-
-void LibraryEditor::rotateCcwTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->rotateCcw();
-}
-
-void LibraryEditor::mirrorTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->mirror();
-}
-
-void LibraryEditor::flipTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->flip();
-}
-
-void LibraryEditor::removeTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->remove();
-}
-
-void LibraryEditor::abortCommandTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->abortCommand();
-}
-
-void LibraryEditor::zoomInTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->zoomIn();
-}
-
-void LibraryEditor::zoomOutTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->zoomOut();
-}
-
-void LibraryEditor::zoomAllTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->zoomAll();
-}
-
-void LibraryEditor::editGridPropertiesTriggered() noexcept {
-  if (mCurrentEditorWidget) mCurrentEditorWidget->editGridProperties();
-}
 
 void LibraryEditor::newComponentCategoryTriggered() noexcept {
   newLibraryElement(NewElementWizardContext::ElementType::ComponentCategory);
@@ -659,6 +481,307 @@ bool LibraryEditor::closeTab(int index) noexcept {
  *  Private Methods
  ******************************************************************************/
 
+void LibraryEditor::createActions() noexcept {
+  const EditorCommandSet& cmd = EditorCommandSet::instance();
+
+  mActionAbort.reset(cmd.abort.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->abortCommand();
+  }));
+  mActionCopy.reset(cmd.copy.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->copy();
+  }));
+  mActionCut.reset(cmd.cut.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->cut();
+  }));
+  mActionExportImage.reset(cmd.exportImage.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->exportImage();
+  }));
+  mActionExportPdf.reset(cmd.exportPdf.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->exportPdf();
+  }));
+  mActionGridProperties.reset(
+      cmd.gridProperties.createAction(this, this, [this]() {
+        if (mCurrentEditorWidget) mCurrentEditorWidget->editGridProperties();
+      }));
+  mActionPaste.reset(cmd.paste.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->paste();
+  }));
+  mActionPrint.reset(cmd.print.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->print();
+  }));
+  mActionQuit.reset(cmd.quit.createAction(this, this, &LibraryEditor::close));
+  mActionRedo.reset(cmd.redo.createAction(this));
+  mActionRemove.reset(cmd.remove.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->remove();
+  }));
+  mActionRemove->setEnabled(!mIsOpenedReadOnly);
+  mActionRotateCcw.reset(cmd.rotateCcw.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->rotateCcw();
+  }));
+  mActionRotateCw.reset(cmd.rotateCw.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->rotateCw();
+  }));
+  mActionSave.reset(cmd.save.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->save();
+  }));
+  mActionSave->setEnabled(!mIsOpenedReadOnly);
+  mActionSelectAll.reset(cmd.selectAll.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->selectAll();
+  }));
+  mActionToolSelect.reset(cmd.toolSelect.createAction(this));
+  mActionToolPin.reset(cmd.toolPin.createAction(this));
+  mActionToolThtPad.reset(cmd.toolThtPad.createAction(this));
+  mActionToolSmtPad.reset(cmd.toolSmtPad.createAction(this));
+  mActionToolLine.reset(cmd.toolLine.createAction(this));
+  mActionToolRect.reset(cmd.toolRect.createAction(this));
+  mActionToolPolygon.reset(cmd.toolPolygon.createAction(this));
+  mActionToolCircle.reset(cmd.toolCircle.createAction(this));
+  mActionToolText.reset(cmd.toolText.createAction(this));
+  mActionToolHole.reset(cmd.toolHole.createAction(this));
+  mActionToolName.reset(cmd.toolName.createAction(this));
+  mActionToolValue.reset(cmd.toolValue.createAction(this));
+  mActionUndo.reset(cmd.undo.createAction(this));
+  mActionRescanLibraries.reset(cmd.rescanLibraries.createAction(
+      this, &mWorkspace.getLibraryDb(),
+      &WorkspaceLibraryDb::startLibraryRescan));
+  mActionZoomFit.reset(cmd.zoomFit.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->zoomAll();
+  }));
+  mActionZoomIn.reset(cmd.zoomIn.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->zoomIn();
+  }));
+  mActionZoomOut.reset(cmd.zoomOut.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->zoomOut();
+  }));
+  mActionOnlineDocumentation.reset(cmd.onlineDocumentation.createAction(
+      this, qApp,
+      []() { QDesktopServices::openUrl(QUrl("https://docs.librepcb.org")); }));
+  mActionWebsite.reset(cmd.website.createAction(this, qApp, []() {
+    QDesktopServices::openUrl(QUrl("https://librepcb.org"));
+  }));
+  mActionAboutLibrePcb.reset(
+      cmd.aboutLibrePcb.createAction(this, this, [this]() {
+        AboutDialog aboutDialog(this);
+        aboutDialog.exec();
+      }));
+  mActionAboutQt.reset(
+      cmd.aboutQt.createAction(this, qApp, &QApplication::aboutQt));
+  mActionNewElement.reset(
+      cmd.newLibraryElement.createAction(this, this, [this]() {
+        NewElementWizard wizard(mWorkspace, *mLibrary, *this, this);
+        if (wizard.exec() == QDialog::Accepted) {
+          FilePath fp = wizard.getContext().getOutputDirectory();
+          editNewLibraryElement(wizard.getContext().mElementType, fp);
+          mWorkspace.getLibraryDb().startLibraryRescan();
+        }
+      }));
+  mActionNewElement->setEnabled(!mIsOpenedReadOnly);
+  mActionShowInFileManager.reset(
+      cmd.showInFileManager.createAction(this, this, [this]() {
+        if (mCurrentEditorWidget) {
+          FilePath fp = mCurrentEditorWidget->getFilePath();
+          QDesktopServices::openUrl(fp.toQUrl());
+        }
+      }));
+  mActionMirrorHorizontal.reset(
+      cmd.mirrorHorizontal.createAction(this, this, [this]() {
+        if (mCurrentEditorWidget) mCurrentEditorWidget->mirror();
+      }));
+  mActionFlipHorizontal.reset(
+      cmd.flipHorizontal.createAction(this, this, [this]() {
+        if (mCurrentEditorWidget) mCurrentEditorWidget->flip();
+      }));
+  mActionImportDxf.reset(cmd.importDxf.createAction(this, this, [this]() {
+    if (mCurrentEditorWidget) mCurrentEditorWidget->importDxf();
+  }));
+  mActionImportEagleLibrary.reset(
+      cmd.importEagleLibrary.createAction(this, this, [this]() {
+        EagleLibraryImportWizard wizard(
+            mWorkspace, mLibrary->getDirectory().getAbsPath(), this);
+        wizard.exec();
+      }));
+
+  // Undo stack action group.
+  mUndoStackActionGroup.reset(new UndoStackActionGroup(
+      *mActionUndo, *mActionRedo, nullptr, nullptr, this));
+
+  // Tools action group.
+  mToolsActionGroup.reset(new ExclusiveActionGroup());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::SELECT,
+                               mActionToolSelect.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_LINE,
+                               mActionToolLine.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_RECT,
+                               mActionToolRect.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_POLYGON,
+                               mActionToolPolygon.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_CIRCLE,
+                               mActionToolCircle.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_NAMES,
+                               mActionToolName.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_VALUES,
+                               mActionToolValue.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::DRAW_TEXT,
+                               mActionToolText.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_PINS,
+                               mActionToolPin.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_THT_PADS,
+                               mActionToolThtPad.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_SMT_PADS,
+                               mActionToolSmtPad.data());
+  mToolsActionGroup->addAction(EditorWidgetBase::Tool::ADD_HOLES,
+                               mActionToolHole.data());
+  mToolsActionGroup->setEnabled(false);
+}
+
+void LibraryEditor::createToolBars() noexcept {
+  // File.
+  mToolBarFile.reset(new QToolBar(tr("File"), this));
+  mToolBarFile->setObjectName("toolBarFile");
+  mToolBarFile->addAction(mActionNewElement.data());
+  mToolBarFile->addAction(mActionSave.data());
+  mToolBarFile->addAction(mActionPrint.data());
+  mToolBarFile->addAction(mActionExportPdf.data());
+  mToolBarFile->addSeparator();
+  mToolBarFile->addAction(mActionUndo.data());
+  mToolBarFile->addAction(mActionRedo.data());
+  addToolBar(Qt::TopToolBarArea, mToolBarFile.data());
+
+  // Edit.
+  mToolBarEdit.reset(new QToolBar(tr("Edit"), this));
+  mToolBarEdit->setObjectName("toolBarEdit");
+  mToolBarEdit->addAction(mActionCut.data());
+  mToolBarEdit->addAction(mActionCopy.data());
+  mToolBarEdit->addAction(mActionPaste.data());
+  mToolBarEdit->addAction(mActionRemove.data());
+  mToolBarEdit->addAction(mActionRotateCcw.data());
+  mToolBarEdit->addAction(mActionRotateCw.data());
+  mToolBarEdit->addAction(mActionMirrorHorizontal.data());
+  mToolBarEdit->addAction(mActionFlipHorizontal.data());
+  addToolBar(Qt::TopToolBarArea, mToolBarEdit.data());
+
+  // View.
+  mToolBarView.reset(new QToolBar(tr("View"), this));
+  mToolBarView->setObjectName("toolBarView");
+  mToolBarView->addAction(mActionGridProperties.data());
+  mToolBarView->addAction(mActionZoomIn.data());
+  mToolBarView->addAction(mActionZoomOut.data());
+  mToolBarView->addAction(mActionZoomFit.data());
+  addToolBar(Qt::TopToolBarArea, mToolBarView.data());
+
+  // Search.
+  mToolBarSearch.reset(new SearchToolBar(this));
+  mToolBarSearch->setObjectName("toolBarSearch");
+  mToolBarSearch->setPlaceholderText(tr("Filter elements..."));
+  addToolBar(Qt::TopToolBarArea, mToolBarSearch.data());
+  LibraryOverviewWidget* overviewWidget =
+      dynamic_cast<LibraryOverviewWidget*>(mUi->tabWidget->widget(0));
+  Q_ASSERT(overviewWidget);
+  connect(mToolBarSearch.data(), &SearchToolBar::textEdited, overviewWidget,
+          &LibraryOverviewWidget::setFilter);
+
+  // Command.
+  mToolBarCommand.reset(new QToolBar(tr("Command"), this));
+  mToolBarCommand->setObjectName("toolBarCommand");
+  mToolBarCommand->addAction(mActionAbort.data());
+  mToolBarCommand->addSeparator();
+  addToolBarBreak(Qt::TopToolBarArea);
+  addToolBar(Qt::TopToolBarArea, mToolBarCommand.data());
+
+  // Tools.
+  mToolBarTools.reset(new QToolBar(tr("Tools"), this));
+  mToolBarTools->setObjectName("toolBarTools");
+  mToolBarTools->addAction(mActionToolSelect.data());
+  mToolBarTools->addAction(mActionToolLine.data());
+  mToolBarTools->addAction(mActionToolRect.data());
+  mToolBarTools->addAction(mActionToolPolygon.data());
+  mToolBarTools->addAction(mActionToolCircle.data());
+  mToolBarTools->addAction(mActionToolName.data());
+  mToolBarTools->addAction(mActionToolValue.data());
+  mToolBarTools->addAction(mActionToolText.data());
+  mToolBarTools->addSeparator();
+  mToolBarTools->addAction(mActionToolPin.data());
+  mToolBarTools->addSeparator();
+  mToolBarTools->addAction(mActionToolThtPad.data());
+  mToolBarTools->addAction(mActionToolSmtPad.data());
+  mToolBarTools->addAction(mActionToolHole.data());
+  addToolBar(Qt::LeftToolBarArea, mToolBarTools.data());
+}
+
+void LibraryEditor::createMenus() noexcept {
+  MenuBuilder mb(mUi->menuBar);
+
+  // File.
+  mb.newMenu(&MenuBuilder::createFileMenu);
+  mb.addAction(mActionNewElement);
+  mb.addAction(mActionSave);
+  mb.addAction(mActionShowInFileManager);
+  mb.addAction(mActionRescanLibraries);
+  mb.addSeparator();
+  {
+    MenuBuilder smb(mb.addSubMenu(&MenuBuilder::createImportMenu));
+    smb.addAction(mActionImportDxf);
+    smb.addAction(mActionImportEagleLibrary);
+  }
+  {
+    MenuBuilder smb(mb.addSubMenu(&MenuBuilder::createExportMenu));
+    smb.addAction(mActionExportPdf);
+    smb.addAction(mActionExportImage);
+  }
+  mb.addSeparator();
+  mb.addAction(mActionPrint);
+  mb.addSeparator();
+  mb.addAction(mActionQuit);
+
+  // Edit.
+  mb.newMenu(&MenuBuilder::createEditMenu);
+  mb.addAction(mActionUndo);
+  mb.addAction(mActionRedo);
+  mb.addSeparator();
+  mb.addAction(mActionSelectAll);
+  mb.addSeparator();
+  mb.addAction(mActionRotateCcw);
+  mb.addAction(mActionRotateCw);
+  mb.addAction(mActionMirrorHorizontal);
+  mb.addAction(mActionFlipHorizontal);
+  mb.addAction(mActionCopy);
+  mb.addAction(mActionCut);
+  mb.addAction(mActionPaste);
+  mb.addAction(mActionRemove);
+
+  // View.
+  mb.newMenu(&MenuBuilder::createViewMenu);
+  mb.addAction(mActionGridProperties);
+  mb.addSeparator();
+  mb.addAction(mActionZoomIn);
+  mb.addAction(mActionZoomOut);
+  mb.addAction(mActionZoomFit);
+
+  // Tools.
+  mb.newMenu(&MenuBuilder::createToolsMenu);
+  mb.addAction(mActionToolSelect);
+  mb.addAction(mActionToolLine);
+  mb.addAction(mActionToolRect);
+  mb.addAction(mActionToolPolygon);
+  mb.addAction(mActionToolCircle);
+  mb.addAction(mActionToolName);
+  mb.addAction(mActionToolValue);
+  mb.addAction(mActionToolText);
+  mb.addSeparator();
+  mb.addAction(mActionToolPin);
+  mb.addSeparator();
+  mb.addAction(mActionToolThtPad);
+  mb.addAction(mActionToolSmtPad);
+  mb.addAction(mActionToolHole);
+
+  // Help.
+  mb.newMenu(&MenuBuilder::createHelpMenu);
+  mb.addAction(mActionOnlineDocumentation);
+  mb.addAction(mActionWebsite);
+  mb.addAction(mActionAboutLibrePcb);
+  mb.addAction(mActionAboutQt);
+}
+
 void LibraryEditor::setActiveEditorWidget(EditorWidgetBase* widget) {
   bool hasGraphicalEditor = false;
   bool supportsFlip = false;
@@ -673,34 +796,34 @@ void LibraryEditor::setActiveEditorWidget(EditorWidgetBase* widget) {
   if (mCurrentEditorWidget) {
     mCurrentEditorWidget->setUndoStackActionGroup(mUndoStackActionGroup.data());
     mCurrentEditorWidget->setToolsActionGroup(mToolsActionGroup.data());
-    mCurrentEditorWidget->setCommandToolBar(mUi->commandToolbar);
+    mCurrentEditorWidget->setCommandToolBar(mToolBarCommand.data());
     mCurrentEditorWidget->setStatusBar(mUi->statusBar);
     hasGraphicalEditor = mCurrentEditorWidget->hasGraphicalEditor();
     supportsFlip = mCurrentEditorWidget->supportsFlip();
   }
-  foreach (QAction* action, mUi->editToolbar->actions()) {
+  foreach (QAction* action, mToolBarEdit->actions()) {
     bool enabled = hasGraphicalEditor;
-    if (action != mUi->actionCopy) {
+    if (action != mActionCopy.data()) {
       enabled = enabled && (!mIsOpenedReadOnly);
     }
     action->setEnabled(enabled);
   }
-  mUi->actionSelectAll->setEnabled(hasGraphicalEditor);
-  mUi->actionFlip->setEnabled(supportsFlip && (!mIsOpenedReadOnly));
+  mActionSelectAll->setEnabled(hasGraphicalEditor);
+  mActionFlipHorizontal->setEnabled(supportsFlip && (!mIsOpenedReadOnly));
   if (isOverviewTab) {
-    mUi->actionRemove->setEnabled(!mIsOpenedReadOnly);
+    mActionRemove->setEnabled(!mIsOpenedReadOnly);
   }
-  mUi->menuImport->setEnabled(!mIsOpenedReadOnly);
-  mUi->actionImportDxf->setEnabled((!mIsOpenedReadOnly) && hasGraphicalEditor);
-  mUi->actionImportEagleLibrary->setEnabled(!mIsOpenedReadOnly);
-  mUi->actionExportImage->setEnabled(hasGraphicalEditor);
-  mUi->actionExportPdf->setEnabled(hasGraphicalEditor);
-  mUi->actionPrint->setEnabled(hasGraphicalEditor);
-  foreach (QAction* action, mUi->viewToolbar->actions()) {
+  mActionImportDxf->setEnabled((!mIsOpenedReadOnly) && hasGraphicalEditor);
+  mActionImportEagleLibrary->setEnabled(!mIsOpenedReadOnly);
+  mActionImportEagleLibrary->setEnabled(!mIsOpenedReadOnly);
+  mActionExportImage->setEnabled(hasGraphicalEditor);
+  mActionExportPdf->setEnabled(hasGraphicalEditor);
+  mActionPrint->setEnabled(hasGraphicalEditor);
+  foreach (QAction* action, mToolBarView->actions()) {
     action->setEnabled(hasGraphicalEditor);
   }
-  mUi->commandToolbar->setEnabled(hasGraphicalEditor && (!mIsOpenedReadOnly));
-  mUi->filterToolbar->setEnabled(isOverviewTab);
+  mToolBarCommand->setEnabled(hasGraphicalEditor && (!mIsOpenedReadOnly));
+  mToolBarSearch->setEnabled(isOverviewTab);
   updateTabTitles();  // force updating the "Save" action title
 }
 
@@ -769,11 +892,11 @@ void LibraryEditor::updateTabTitles() noexcept {
   }
 
   if (mCurrentEditorWidget && (!mIsOpenedReadOnly)) {
-    mUi->actionSave->setEnabled(true);
-    mUi->actionSave->setText(
-        tr("&Save '%1'").arg(mCurrentEditorWidget->windowTitle()));
+    mActionSave->setEnabled(true);
+    mActionSave->setText(mActionSave->text() % "'" %
+                         mCurrentEditorWidget->windowTitle() % "'");
   } else {
-    mUi->actionSave->setEnabled(false);
+    mActionSave->setEnabled(false);
   }
 }
 

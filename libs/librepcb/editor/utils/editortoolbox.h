@@ -61,6 +61,8 @@ public:
    */
   static void removeFormLayoutRow(QLabel& label) noexcept;
 
+  static void deleteLayoutItemRecursively(QLayoutItem* item) noexcept;
+
 private:
   /**
    * @brief Helper for #removeFormLayoutRow()

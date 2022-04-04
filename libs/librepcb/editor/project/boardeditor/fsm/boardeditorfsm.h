@@ -41,11 +41,8 @@ namespace editor {
 class BoardEditor;
 class BoardEditorState;
 class GraphicsView;
+class ToolBarProxy;
 class UndoStack;
-
-namespace Ui {
-class BoardEditor;
-}
 
 /*******************************************************************************
  *  Class BoardEditorFsm
@@ -85,8 +82,8 @@ public:
     Workspace& workspace;
     Project& project;
     BoardEditor& editor;
-    Ui::BoardEditor& editorUi;
     GraphicsView& editorGraphicsView;
+    ToolBarProxy& commandToolBar;
     UndoStack& undoStack;
   };
 

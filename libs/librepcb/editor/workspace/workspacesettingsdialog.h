@@ -37,6 +37,8 @@ class WorkspaceSettings;
 
 namespace editor {
 
+class KeyboardShortcutsModel;
+
 namespace Ui {
 class WorkspaceSettingsDialog;
 }
@@ -78,6 +80,8 @@ private:
   QScopedPointer<LibraryLocaleOrderModel> mLibLocaleOrderModel;
   QScopedPointer<LibraryNormOrderModel> mLibNormOrderModel;
   QScopedPointer<RepositoryUrlModel> mRepositoryUrlsModel;
+  QScopedPointer<KeyboardShortcutsModel> mKeyboardShortcutsModel;
+  QScopedPointer<QSortFilterProxyModel> mKeyboardShortcutsFilterModel;
   QScopedPointer<Ui::WorkspaceSettingsDialog> mUi;
 };
 

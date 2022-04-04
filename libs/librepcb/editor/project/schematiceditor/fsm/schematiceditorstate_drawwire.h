@@ -132,8 +132,7 @@ private:  // Data
   SI_NetPoint* mPositioningNetPoint2;  ///< the second netpoint to place
 
   // Widgets for the command toolbar
-  QHash<WireMode, QAction*> mWireModeActions;
-  QList<QAction*> mActionSeparators;
+  QHash<WireMode, QPointer<QAction>> mWireModeActions;
 };
 
 /*******************************************************************************

@@ -118,12 +118,11 @@ private:  // Data
   CmdSymbolInstanceEdit* mCurrentSymbolEditCommand;
 
   // Widgets for the command toolbar
-  QLabel* mValueLabel;
-  QComboBox* mValueComboBox;
-  QLineEdit* mAttributeValueEdit;
-  QAction* mAttributeValueEditAction;
-  AttributeUnitComboBox* mAttributeUnitComboBox;
-  QAction* mAttributeUnitComboBoxAction;
+  QPointer<QComboBox> mValueComboBox;
+  QPointer<QLineEdit> mAttributeValueEdit;
+  QPointer<QAction> mAttributeValueEditAction;
+  QPointer<AttributeUnitComboBox> mAttributeUnitComboBox;
+  QPointer<QAction> mAttributeUnitComboBoxAction;
 };
 
 /*******************************************************************************

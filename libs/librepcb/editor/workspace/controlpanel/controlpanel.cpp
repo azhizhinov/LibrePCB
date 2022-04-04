@@ -25,9 +25,11 @@
 #include "../../dialogs/aboutdialog.h"
 #include "../../dialogs/directorylockhandlerdialog.h"
 #include "../../dialogs/filedialog.h"
+#include "../../editorcommandset.h"
 #include "../../library/libraryeditor.h"
 #include "../../project/newprojectwizard/newprojectwizard.h"
 #include "../../project/projecteditor.h"
+#include "../../utils/menubuilder.h"
 #include "../../workspace/librarymanager/librarymanager.h"
 #include "../firstrunwizard/firstrunwizard.h"
 #include "../projectlibraryupdater/projectlibraryupdater.h"
@@ -67,7 +69,6 @@ ControlPanel::ControlPanel(Workspace& workspace)
     mUi(new Ui::ControlPanel),
     mLibraryManager(new LibraryManager(mWorkspace, this)) {
   mUi->setupUi(this);
-
   setWindowTitle(
       tr("Control Panel - LibrePCB %1").arg(qApp->applicationVersion()));
 
@@ -83,6 +84,10 @@ ControlPanel::ControlPanel(Workspace& workspace)
           mUi->statusBar, &StatusBar::setProgressBarPercent,
           Qt::QueuedConnection);
 
+  // Setup actions and menus.
+  createActions();
+  createMenus();
+
   // decive if we have to show the warning about a newer workspace file format
   // version
   Version actualVersion = qApp->getFileFormatVersion();
@@ -94,24 +99,18 @@ ControlPanel::ControlPanel(Workspace& workspace)
   // workspace library was scanned
   mUi->lblWarnForNoLibraries->setVisible(false);
   connect(mUi->lblWarnForNoLibraries, &QLabel::linkActivated, this,
-          &ControlPanel::on_actionOpen_Library_Manager_triggered);
+          &ControlPanel::openLibraryManager);
   connect(&mWorkspace.getLibraryDb(),
           &WorkspaceLibraryDb::scanLibraryListUpdated, this,
           &ControlPanel::updateNoLibrariesWarningVisibility);
 
   // connect some actions which are created with the Qt Designer
-  connect(mUi->actionQuit, &QAction::triggered, this, &ControlPanel::close);
-  connect(mUi->actionOpenWebsite, &QAction::triggered,
-          []() { QDesktopServices::openUrl(QUrl("https://librepcb.org")); });
-  connect(mUi->actionOnlineDocumentation, &QAction::triggered, []() {
-    QDesktopServices::openUrl(QUrl("https://docs.librepcb.org"));
-  });
-  connect(mUi->actionAbout_Qt, &QAction::triggered, qApp,
-          &QApplication::aboutQt);
-  connect(mUi->actionAbout, &QAction::triggered, this, [this]() {
-    AboutDialog aboutDialog(this);
-    aboutDialog.exec();
-  });
+  connect(mUi->openProjectButton, &QPushButton::clicked,
+          mActionOpenProject.data(), &QAction::trigger);
+  connect(mUi->newProjectButton, &QPushButton::clicked,
+          mActionNewProject.data(), &QAction::trigger);
+  connect(mUi->openLibraryManagerButton, &QPushButton::clicked,
+          mActionLibraryManager.data(), &QAction::trigger);
   connect(mLibraryManager.data(), &LibraryManager::openLibraryEditorTriggered,
           this, &ControlPanel::openLibraryEditor);
 
@@ -188,6 +187,72 @@ void ControlPanel::openProjectLibraryUpdater(const FilePath& project) noexcept {
  *  General private methods
  ******************************************************************************/
 
+void ControlPanel::createActions() noexcept {
+  const EditorCommandSet& cmd = EditorCommandSet::instance();
+
+  mActionNewProject.reset(
+      cmd.newProject.createAction(this, this, [this]() { newProject(); }));
+  mActionOpenProject.reset(
+      cmd.openProject.createAction(this, this, [this]() { openProject(); }));
+  mActionCloseAllProjects.reset(cmd.closeAllProjects.createAction(
+      this, this, [this]() { closeAllProjects(true); }));
+  mActionSwitchWorkspace.reset(cmd.switchWorkspace.createAction(
+      this, this, &ControlPanel::switchWorkspace));
+  mActionQuit.reset(cmd.quit.createAction(this, this, &ControlPanel::close));
+  mActionRescanLibraries.reset(cmd.rescanLibraries.createAction(
+      this, &mWorkspace.getLibraryDb(),
+      &WorkspaceLibraryDb::startLibraryRescan));
+  mActionLibraryManager.reset(cmd.libraryManager.createAction(
+      this, this, &ControlPanel::openLibraryManager));
+  mActionLibraryManager->setShortcutContext(Qt::ApplicationShortcut);
+  mActionWorkspaceSettings.reset(
+      cmd.workspaceSettings.createAction(this, this, [this]() {
+        WorkspaceSettingsDialog dialog(mWorkspace.getSettings(), this);
+        dialog.exec();
+      }));
+  mActionOnlineDocumentation.reset(cmd.onlineDocumentation.createAction(
+      this, qApp,
+      []() { QDesktopServices::openUrl(QUrl("https://docs.librepcb.org")); }));
+  mActionWebsite.reset(cmd.website.createAction(this, qApp, []() {
+    QDesktopServices::openUrl(QUrl("https://librepcb.org"));
+  }));
+  mActionAboutLibrePcb.reset(
+      cmd.aboutLibrePcb.createAction(this, this, [this]() {
+        AboutDialog aboutDialog(this);
+        aboutDialog.exec();
+      }));
+  mActionAboutQt.reset(
+      cmd.aboutQt.createAction(this, qApp, &QApplication::aboutQt));
+}
+
+void ControlPanel::createMenus() noexcept {
+  MenuBuilder mb(mUi->menuBar);
+
+  // File.
+  mb.newMenu(&MenuBuilder::createFileMenu);
+  mb.addAction(mActionNewProject);
+  mb.addAction(mActionOpenProject);
+  mb.addAction(mActionCloseAllProjects);
+  mb.addSeparator();
+  mb.addAction(mActionSwitchWorkspace);
+  mb.addSeparator();
+  mb.addAction(mActionQuit);
+
+  // Extras.
+  mb.newMenu(&MenuBuilder::createExtrasMenu);
+  mb.addAction(mActionRescanLibraries);
+  mb.addAction(mActionLibraryManager);
+  mb.addSeparator();
+  mb.addAction(mActionWorkspaceSettings);
+
+  // Help.
+  mb.newMenu(&MenuBuilder::createHelpMenu);
+  mb.addAction(mActionOnlineDocumentation);
+  mb.addAction(mActionWebsite);
+  mb.addAction(mActionAboutLibrePcb);
+  mb.addAction(mActionAboutQt);
+}
+
 void ControlPanel::saveSettings() {
   QSettings clientSettings;
   clientSettings.beginGroup("controlpanel");
@@ -252,6 +317,34 @@ void ControlPanel::updateNoLibrariesWarningVisibility() noexcept {
   mUi->lblWarnForNoLibraries->setVisible(showWarning);
 }
 
+void ControlPanel::openLibraryManager() noexcept {
+  mLibraryManager->show();
+  mLibraryManager->raise();
+  mLibraryManager->activateWindow();
+  mLibraryManager->updateRepositoryLibraryList();
+}
+
+void ControlPanel::switchWorkspace() noexcept {
+  FirstRunWizard wizard;
+  wizard.skipWelcomePage();  // Welcome page not needed here
+  if (wizard.exec() == QDialog::Accepted) {
+    FilePath wsPath = wizard.getWorkspaceFilePath();
+    if (wizard.getCreateNewWorkspace()) {
+      try {
+        // create new workspace
+        Workspace::createNewWorkspace(wsPath);  // can throw
+      } catch (const Exception& e) {
+        QMessageBox::critical(this, tr("Error"), e.getMsg());
+        return;
+      }
+    }
+    Workspace::setMostRecentlyUsedWorkspacePath(wsPath);
+    QMessageBox::information(this, tr("Workspace changed"),
+                             tr("The chosen workspace will be used after "
+                                "restarting the application."));
+  }
+}
+
 void ControlPanel::showProjectReadmeInBrowser(
     const FilePath& projectFilePath) noexcept {
   if (projectFilePath.isValid()) {
@@ -268,7 +361,11 @@ void ControlPanel::showProjectReadmeInBrowser(
  *  Project Management
  ******************************************************************************/
 
-ProjectEditor* ControlPanel::newProject(const FilePath& parentDir) noexcept {
+ProjectEditor* ControlPanel::newProject(FilePath parentDir) noexcept {
+  if (!parentDir.isValid()) {
+    parentDir = mWorkspace.getProjectsPath();
+  }
+
   NewProjectWizard wizard(mWorkspace, this);
   wizard.setLocation(parentDir);
   if (wizard.exec() == QWizard::Accepted) {
@@ -308,7 +405,22 @@ ProjectEditor* ControlPanel::openProject(Project& project) noexcept {
   }
 }
 
-ProjectEditor* ControlPanel::openProject(const FilePath& filepath) noexcept {
+ProjectEditor* ControlPanel::openProject(FilePath filepath) noexcept {
+  if (!filepath.isValid()) {
+    QSettings settings;  // client settings
+    QString lastOpenedFile = settings
+                                 .value("controlpanel/last_open_project",
+                                        mWorkspace.getPath().toStr())
+                                 .toString();
+
+    filepath = FilePath(FileDialog::getOpenFileName(
+        this, tr("Open Project"), lastOpenedFile,
+        tr("LibrePCB project files (%1)").arg("*.lpp")));
+    if (!filepath.isValid()) return nullptr;
+
+    settings.setValue("controlpanel/last_open_project", filepath.toNative());
+  }
+
   try {
     ProjectEditor* editor = getOpenProject(filepath);
     if (!editor) {
@@ -486,65 +598,6 @@ void ControlPanel::projectEditorClosed() noexcept {
 /*******************************************************************************
  *  Actions
  ******************************************************************************/
-
-void ControlPanel::on_actionNew_Project_triggered() {
-  newProject(mWorkspace.getProjectsPath());
-}
-
-void ControlPanel::on_actionOpen_Project_triggered() {
-  QSettings settings;  // client settings
-  QString lastOpenedFile =
-      settings
-          .value("controlpanel/last_open_project", mWorkspace.getPath().toStr())
-          .toString();
-
-  FilePath filepath(FileDialog::getOpenFileName(
-      this, tr("Open Project"), lastOpenedFile,
-      tr("LibrePCB project files (%1)").arg("*.lpp")));
-
-  if (!filepath.isValid()) return;
-
-  settings.setValue("controlpanel/last_open_project", filepath.toNative());
-
-  openProject(filepath);
-}
-
-void ControlPanel::on_actionOpen_Library_Manager_triggered() {
-  mLibraryManager->show();
-  mLibraryManager->raise();
-  mLibraryManager->activateWindow();
-  mLibraryManager->updateRepositoryLibraryList();
-}
-
-void ControlPanel::on_actionClose_all_open_projects_triggered() {
-  closeAllProjects(true);
-}
-
-void ControlPanel::on_actionSwitch_Workspace_triggered() {
-  FirstRunWizard wizard;
-  wizard.skipWelcomePage();  // Welcome page not needed here
-  if (wizard.exec() == QDialog::Accepted) {
-    FilePath wsPath = wizard.getWorkspaceFilePath();
-    if (wizard.getCreateNewWorkspace()) {
-      try {
-        // create new workspace
-        Workspace::createNewWorkspace(wsPath);  // can throw
-      } catch (const Exception& e) {
-        QMessageBox::critical(this, tr("Error"), e.getMsg());
-        return;
-      }
-    }
-    Workspace::setMostRecentlyUsedWorkspacePath(wsPath);
-    QMessageBox::information(this, tr("Workspace changed"),
-                             tr("The chosen workspace will be used after "
-                                "restarting the application."));
-  }
-}
-
-void ControlPanel::on_actionWorkspace_Settings_triggered() {
-  WorkspaceSettingsDialog dialog(mWorkspace.getSettings(), this);
-  dialog.exec();
-}
 
 void ControlPanel::on_projectTreeView_clicked(const QModelIndex& index) {
   FilePath fp(mProjectTreeModel->filePath(index));
@@ -766,10 +819,6 @@ void ControlPanel::on_favoriteProjectsListView_customContextMenuRequested(
   } else if (result == libraryUpdaterAction) {
     openProjectLibraryUpdater(fp);
   }
-}
-
-void ControlPanel::on_actionRescanLibraries_triggered() {
-  mWorkspace.getLibraryDb().startLibraryRescan();
 }
 
 /*******************************************************************************

@@ -47,6 +47,7 @@ namespace editor {
 class EditorWidgetBase;
 class ExclusiveActionGroup;
 class LibraryOverviewWidget;
+class SearchToolBar;
 class UndoStackActionGroup;
 
 namespace Ui {
@@ -119,23 +120,6 @@ public:
   LibraryEditor& operator=(const LibraryEditor& rhs) = delete;
 
 private:  // GUI Event Handlers
-  void newElementTriggered() noexcept;
-  void saveTriggered() noexcept;
-  void showElementInFileExplorerTriggered() noexcept;
-  void selectAllTriggered() noexcept;
-  void cutTriggered() noexcept;
-  void copyTriggered() noexcept;
-  void pasteTriggered() noexcept;
-  void rotateCwTriggered() noexcept;
-  void rotateCcwTriggered() noexcept;
-  void mirrorTriggered() noexcept;
-  void flipTriggered() noexcept;
-  void removeTriggered() noexcept;
-  void abortCommandTriggered() noexcept;
-  void zoomInTriggered() noexcept;
-  void zoomOutTriggered() noexcept;
-  void zoomAllTriggered() noexcept;
-  void editGridPropertiesTriggered() noexcept;
   void newComponentCategoryTriggered() noexcept;
   void newPackageCategoryTriggered() noexcept;
   void newSymbolTriggered() noexcept;
@@ -163,6 +147,9 @@ private:  // GUI Event Handlers
   bool closeTab(int index) noexcept;
 
 private:  // Methods
+  void createActions() noexcept;
+  void createToolBars() noexcept;
+  void createMenus() noexcept;
   void setActiveEditorWidget(EditorWidgetBase* widget);
   void newLibraryElement(NewElementWizardContext::ElementType type);
   void duplicateLibraryElement(NewElementWizardContext::ElementType type,
@@ -177,11 +164,65 @@ private:  // Data
   Workspace& mWorkspace;
   bool mIsOpenedReadOnly;
   QScopedPointer<Ui::LibraryEditor> mUi;
-  QScopedPointer<UndoStackActionGroup> mUndoStackActionGroup;
-  QScopedPointer<ExclusiveActionGroup> mToolsActionGroup;
   QList<GraphicsLayer*> mLayers;
   EditorWidgetBase* mCurrentEditorWidget;
   Library* mLibrary;
+
+  // Actions
+  QScopedPointer<QAction> mActionAbort;
+  QScopedPointer<QAction> mActionCopy;
+  QScopedPointer<QAction> mActionCut;
+  QScopedPointer<QAction> mActionExportImage;
+  QScopedPointer<QAction> mActionExportPdf;
+  QScopedPointer<QAction> mActionGridProperties;
+  QScopedPointer<QAction> mActionPaste;
+  QScopedPointer<QAction> mActionPrint;
+  QScopedPointer<QAction> mActionQuit;
+  QScopedPointer<QAction> mActionRedo;
+  QScopedPointer<QAction> mActionRemove;
+  QScopedPointer<QAction> mActionRotateCcw;
+  QScopedPointer<QAction> mActionRotateCw;
+  QScopedPointer<QAction> mActionSave;
+  QScopedPointer<QAction> mActionSelectAll;
+  QScopedPointer<QAction> mActionToolSelect;
+  QScopedPointer<QAction> mActionToolPin;
+  QScopedPointer<QAction> mActionToolThtPad;
+  QScopedPointer<QAction> mActionToolSmtPad;
+  QScopedPointer<QAction> mActionToolLine;
+  QScopedPointer<QAction> mActionToolRect;
+  QScopedPointer<QAction> mActionToolPolygon;
+  QScopedPointer<QAction> mActionToolCircle;
+  QScopedPointer<QAction> mActionToolText;
+  QScopedPointer<QAction> mActionToolHole;
+  QScopedPointer<QAction> mActionToolName;
+  QScopedPointer<QAction> mActionToolValue;
+  QScopedPointer<QAction> mActionUndo;
+  QScopedPointer<QAction> mActionRescanLibraries;
+  QScopedPointer<QAction> mActionZoomFit;
+  QScopedPointer<QAction> mActionZoomIn;
+  QScopedPointer<QAction> mActionZoomOut;
+  QScopedPointer<QAction> mActionOnlineDocumentation;
+  QScopedPointer<QAction> mActionWebsite;
+  QScopedPointer<QAction> mActionAboutLibrePcb;
+  QScopedPointer<QAction> mActionAboutQt;
+  QScopedPointer<QAction> mActionNewElement;
+  QScopedPointer<QAction> mActionShowInFileManager;
+  QScopedPointer<QAction> mActionMirrorHorizontal;
+  QScopedPointer<QAction> mActionFlipHorizontal;
+  QScopedPointer<QAction> mActionImportDxf;
+  QScopedPointer<QAction> mActionImportEagleLibrary;
+
+  // Action groups
+  QScopedPointer<UndoStackActionGroup> mUndoStackActionGroup;
+  QScopedPointer<ExclusiveActionGroup> mToolsActionGroup;
+
+  // Toolbars
+  QScopedPointer<QToolBar> mToolBarFile;
+  QScopedPointer<QToolBar> mToolBarEdit;
+  QScopedPointer<QToolBar> mToolBarView;
+  QScopedPointer<SearchToolBar> mToolBarSearch;
+  QScopedPointer<QToolBar> mToolBarCommand;
+  QScopedPointer<QToolBar> mToolBarTools;
 };
 
 /*******************************************************************************

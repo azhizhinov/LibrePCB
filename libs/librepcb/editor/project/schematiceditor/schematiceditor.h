@@ -47,6 +47,8 @@ class GraphicsView;
 class ProjectEditor;
 class SchematicEditorFsm;
 class SchematicPagesDock;
+class SearchToolBar;
+class ToolBarProxy;
 class UndoStackActionGroup;
 
 namespace Ui {
@@ -89,26 +91,15 @@ public:
 protected:
   void closeEvent(QCloseEvent* event);
 
-private slots:
-
-  // Actions
-  void on_actionClose_Project_triggered();
-  void on_actionGrid_triggered();
-  void on_actionGenerateBom_triggered();
-  void on_actionAddComp_Resistor_triggered();
-  void on_actionAddComp_BipolarCapacitor_triggered();
-  void on_actionAddComp_UnipolarCapacitor_triggered();
-  void on_actionAddComp_Inductor_triggered();
-  void on_actionAddComp_gnd_triggered();
-  void on_actionAddComp_vcc_triggered();
-  void on_actionProjectProperties_triggered();
-  void on_actionUpdateLibrary_triggered();
-
 signals:
   void activeSchematicChanged(int index);
 
 private:
   // Private Methods
+  void createActions() noexcept;
+  void createToolBars() noexcept;
+  void createDockWidgets() noexcept;
+  void createMenus() noexcept;
   bool graphicsViewEventHandler(QEvent* event);
   void toolActionGroupChangeTriggered(const QVariant& newTool) noexcept;
   void addSchematic() noexcept;
@@ -118,6 +109,7 @@ private:
   QStringList getSearchToolBarCompleterList() noexcept;
   void goToSymbol(const QString& name, unsigned int index) noexcept;
   void updateComponentToolbarIcons() noexcept;
+  void execGridPropertiesDialog() noexcept;
   void execGraphicsExportDialog(GraphicsExportDialog::Output output,
                                 const QString& settingsKey) noexcept;
   bool useIeee315Symbols() const noexcept;
@@ -125,19 +117,77 @@ private:
   // General Attributes
   ProjectEditor& mProjectEditor;
   Project& mProject;
-  Ui::SchematicEditor* mUi;
-  GraphicsView* mGraphicsView;
+  QScopedPointer<Ui::SchematicEditor> mUi;
+  QScopedPointer<ToolBarProxy> mCommandToolBarProxy;
+  int mActiveSchematicIndex;
+  QScopedPointer<SchematicEditorFsm> mFsm;
+
+  // Actions
+  QScopedPointer<QAction> mActionAbort;
+  QScopedPointer<QAction> mActionBoardEditor;
+  QScopedPointer<QAction> mActionCloseProject;
+  QScopedPointer<QAction> mActionComponentResistor;
+  QScopedPointer<QAction> mActionComponentInductor;
+  QScopedPointer<QAction> mActionComponentCapacitorBipolar;
+  QScopedPointer<QAction> mActionComponentCapacitorUnipolar;
+  QScopedPointer<QAction> mActionComponentGnd;
+  QScopedPointer<QAction> mActionComponentVcc;
+  QScopedPointer<QAction> mActionControlPanel;
+  QScopedPointer<QAction> mActionCopy;
+  QScopedPointer<QAction> mActionCut;
+  QScopedPointer<QAction> mActionExportImage;
+  QScopedPointer<QAction> mActionExportLppz;
+  QScopedPointer<QAction> mActionExportPdf;
+  QScopedPointer<QAction> mActionGenerateBom;
+  QScopedPointer<QAction> mActionGridProperties;
+  QScopedPointer<QAction> mActionMirrorHorizontal;
+  QScopedPointer<QAction> mActionNetClasses;
+  QScopedPointer<QAction> mActionNewSheet;
+  QScopedPointer<QAction> mActionOrderPcb;
+  QScopedPointer<QAction> mActionPaste;
+  QScopedPointer<QAction> mActionPrint;
+  QScopedPointer<QAction> mActionProjectProperties;
+  QScopedPointer<QAction> mActionProjectSettings;
+  QScopedPointer<QAction> mActionQuit;
+  QScopedPointer<QAction> mActionRedo;
+  QScopedPointer<QAction> mActionRemove;
+  QScopedPointer<QAction> mActionRenameSheet;
+  QScopedPointer<QAction> mActionRotateCcw;
+  QScopedPointer<QAction> mActionRotateCw;
+  QScopedPointer<QAction> mActionSaveProject;
+  QScopedPointer<QAction> mActionSelectAll;
+  QScopedPointer<QAction> mActionToolSelect;
+  QScopedPointer<QAction> mActionToolWire;
+  QScopedPointer<QAction> mActionToolNetLabel;
+  QScopedPointer<QAction> mActionToolPolygon;
+  QScopedPointer<QAction> mActionToolText;
+  QScopedPointer<QAction> mActionToolComponent;
+  QScopedPointer<QAction> mActionUndo;
+  QScopedPointer<QAction> mActionUpdateLibrary;
+  QScopedPointer<QAction> mActionZoomFit;
+  QScopedPointer<QAction> mActionZoomIn;
+  QScopedPointer<QAction> mActionZoomOut;
+  QScopedPointer<QAction> mActionOnlineDocumentation;
+  QScopedPointer<QAction> mActionWebsite;
+  QScopedPointer<QAction> mActionAboutLibrePcb;
+  QScopedPointer<QAction> mActionAboutQt;
+
+  // Action groups
   QScopedPointer<UndoStackActionGroup> mUndoStackActionGroup;
   QScopedPointer<ExclusiveActionGroup> mToolsActionGroup;
 
-  int mActiveSchematicIndex;
+  // Toolbars
+  QScopedPointer<QToolBar> mToolBarFile;
+  QScopedPointer<QToolBar> mToolBarEdit;
+  QScopedPointer<QToolBar> mToolBarView;
+  QScopedPointer<SearchToolBar> mToolBarSearch;
+  QScopedPointer<QToolBar> mToolBarCommand;
+  QScopedPointer<QToolBar> mToolBarTools;
+  QScopedPointer<QToolBar> mToolBarComponents;
 
   // Docks
-  SchematicPagesDock* mPagesDock;
-  ErcMsgDock* mErcMsgDock;
-
-  // Finite State Machine
-  SchematicEditorFsm* mFsm;
+  QScopedPointer<SchematicPagesDock> mDockPages;
+  QScopedPointer<ErcMsgDock> mDockErc;
 };
 
 /*******************************************************************************
